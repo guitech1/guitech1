@@ -20,38 +20,21 @@ exports.handler = async function (event) {
         amount: Number(valor),
         description: descricao || `Pedido - ${nome}`,
         external_id: `pedido_${Date.now()}`,
+        expiration: 1800
       }),
     });
 
     const dados = await resposta.json();
 
     return {
-      statusCode: 200,
+      statusCode: resposta.status,
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        pix_copia_cola:
-          dados.pix_copia_cola ||
-          dados.pixCopiaCola ||
-          dados.copy_paste ||
-          dados.pix_code ||
-          dados.payload ||
-          dados.data?.pix_copia_cola ||
-          dados.data?.copy_paste ||
-          dados.data?.pix_code ||
-          null,
-
-        qr_code_base64:
-          dados.qr_code_base64 ||
-          dados.qrCodeBase64 ||
-          dados.qrcode_base64 ||
-          dados.qr_code ||
-          dados.qrcode ||
-          dados.data?.qr_code_base64 ||
-          dados.data?.qr_code ||
-          dados.data?.qrcode ||
-          null,
-
-        resposta_original: dados
+        pix_copia_cola: dados.transaction?.pix_copia_cola || null,
+        qr_code_base64: dados.transaction?.qr_code_base64 || null,
+        status: dados.transaction?.status || dados.status,
+        id: dados.transaction?.id || null,
+        original: dados
       }),
     };
   } catch (erro) {
