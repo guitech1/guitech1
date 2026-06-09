@@ -45,4 +45,4 @@ exports.handler = async function (event) {
       body: JSON.stringify({ error: erro.message }),
     };
   }
-};
+}; // redeploy
