@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel - Solicitações</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-gray-950 text-gray-100 font-sans min-h-screen p-4 md:p-8">
+
+    <!-- Login -->
+    <div id="login-area" class="min-h-screen flex items-center justify-center p-4">
+        <div class="bg-gray-900 border border-gray-800 p-6 rounded-2xl shadow-2xl w-full max-w-md">
+            <div class="text-center mb-6">
+                <div class="w-16 h-16 rounded-full bg-blue-600/10 border border-blue-500/30 flex items-center justify-center mx-auto mb-3">
+                    <i class="fas fa-user-shield text-blue-400 text-2xl"></i>
+                </div>
+                <h1 class="text-2xl font-black text-blue-500">Login Solicitações</h1>
+                <p class="text-xs text-gray-400 mt-1">Entre para visualizar os pedidos de suporte.</p>
+            </div>
+
+            <form onsubmit="fazerLogin(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-gray-400 uppercase mb-1">E-mail</label>
+                    <input type="email" id="login-email" required placeholder="Seu e-mail ADM" class="w-full bg-gray-950 border border-gray-800 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-white">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Senha</label>
+                    <input type="password" id="login-senha" required placeholder="Sua senha" class="w-full bg-gray-950 border border-gray-800 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-white">
+                </div>
+
+                <button type="submit" id="btn-login" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-blue-950">
+                    <i class="fas fa-lock-open"></i> Entrar
+                </button>
+            </form>
+        </div>
+    </div>
+
+
+
+    <div id="painel-area" class="max-w-5xl mx-auto hidden">
+        <header class="flex justify-between items-center mb-8 bg-gray-900 border border-gray-800 p-6 rounded-2xl shadow-xl">
+            <h1 class="text-xl md:text-2xl font-black tracking-wider text-blue-500 flex items-center gap-2">
+                <i class="fas fa-comments"></i> PAINEL DE SOLICITAÇÕES
+            </h1>
+            <div class="flex items-center gap-2">
+                <button onclick="listarSolicitacoes()" class="text-xs bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-full text-white font-bold flex items-center gap-2 shadow-lg">
+                    <i class="fas fa-sync-alt"></i> Atualizar
+                </button>
+                <button onclick="sair()" class="text-xs bg-red-600 hover:bg-red-700 px-4 py-2 rounded-full text-white font-bold flex items-center gap-2 shadow-lg">
+                    <i class="fas fa-sign-out-alt"></i> Sair
+                </button>
+            </div>
+        </header>
+
+        <div class="bg-gray-900 border border-gray-800 p-6 rounded-2xl shadow-xl">
+            <h2 class="text-base font-bold mb-4 flex items-center gap-2 text-white">
+                <i class="fas fa-inbox text-blue-500"></i> Solicitações recebidas
+            </h2>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="border-b border-gray-800 text-xs text-gray-400 font-bold uppercase bg-gray-950/50">
+                            <th class="p-3">Tipo</th>
+                            <th class="p-3">Nome</th>
+                            <th class="p-3">WhatsApp</th>
+                            <th class="p-3">Instagram</th>
+                            <th class="p-3">Mensagem</th>
+                            <th class="p-3 text-center">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabela-solicitacoes">
+                        <tr><td colspan="6" class="text-center py-4 text-gray-500">Carregando...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = "https://rwseiwzfZQVBNAWTESMX.supabase.co";
+        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3c2Vpd3pmenF2Ym5hd3Rlc214Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MzIzNjcsImV4cCI6MjA5NjAwODM2N30.xMZHzq-V-2OHnyMFQAHn2j0HquUqxbTJheqINHBrRJA";
+        const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        window.onload = verificarLogin;
+
+
+        async function verificarLogin() {
+            const { data } = await db.auth.getSession();
+
+            if (data.session) {
+                document.getElementById('login-area').classList.add('hidden');
+                document.getElementById('painel-area').classList.remove('hidden');
+                listarSolicitacoes();
+            } else {
+                document.getElementById('login-area').classList.remove('hidden');
+                document.getElementById('painel-area').classList.add('hidden');
+            }
+        }
+
+        async function fazerLogin(event) {
+            event.preventDefault();
+
+            const btn = document.getElementById('btn-login');
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fas fa-spinner animate-spin"></i> Entrando...`;
+
+            try {
+                const email = document.getElementById('login-email').value.trim();
+                const password = document.getElementById('login-senha').value;
+
+                const { error } = await db.auth.signInWithPassword({
+                    email,
+                    password
+                });
+
+                if (error) throw error;
+
+                verificarLogin();
+
+            } catch (err) {
+                alert('Erro no login: ' + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = `<i class="fas fa-lock-open"></i> Entrar`;
+            }
+        }
+
+        async function sair() {
+            await db.auth.signOut();
+            verificarLogin();
+        }
+
+        function formatarTelefone(numero) {
+            const n = String(numero || '').replace(/\D/g, '');
+            if (n.length === 11) return `(${n.slice(0,2)}) ${n.slice(2,7)}-${n.slice(7)}`;
+            if (n.length === 10) return `(${n.slice(0,2)}) ${n.slice(2,6)}-${n.slice(6)}`;
+            return numero || '--';
+        }
+
+        async function listarSolicitacoes() {
+            const tbody = document.getElementById('tabela-solicitacoes');
+            tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-gray-500">Carregando...</td></tr>`;
+
+            const { data, error } = await db
+                .from('solicitacoes')
+                .select('*')
+                .order('criado_em', { ascending: false });
+
+            if (error) {
+                tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-red-400">Erro: ${error.message}</td></tr>`;
+                return;
+            }
+
+            if (!data || data.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-gray-500">Nenhuma solicitação recebida.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = '';
+
+            data.forEach(item => {
+                const tel = String(item.telefone || '').replace(/\D/g, '');
+                const linkWhats = tel ? `https://wa.me/55${tel}` : '#';
+                const ig = String(item.instagram || '').replace('@', '');
+                const linkIg = ig ? `https://instagram.com/${ig}` : '#';
+
+                tbody.innerHTML += `
+                    <tr class="border-b border-gray-800 hover:bg-gray-950/30 text-sm align-top">
+                        <td class="p-3 text-blue-400 font-bold">${item.tipo || '--'}</td>
+                        <td class="p-3 text-white font-medium">${item.nome || 'Sem nome'}</td>
+                        <td class="p-3 text-green-400 font-semibold">${formatarTelefone(item.telefone)}</td>
+                        <td class="p-3 text-pink-400 font-semibold">${item.instagram || '--'}</td>
+                        <td class="p-3 text-gray-300 max-w-xs whitespace-normal">${item.mensagem || '--'}</td>
+                        <td class="p-3 text-center whitespace-nowrap">
+                            <a href="${linkWhats}" target="_blank" class="text-green-400 hover:text-green-300 p-2 inline-block" title="Abrir WhatsApp">
+                                <i class="fab fa-whatsapp"></i>
+                            </a>
+                            <a href="${linkIg}" target="_blank" class="text-pink-400 hover:text-pink-300 p-2 inline-block" title="Abrir Instagram">
+                                <i class="fab fa-instagram"></i>
+                            </a>
+                            <button onclick="deletarSolicitacao(${item.id})" class="text-red-500 hover:text-red-400 p-2 cursor-pointer" title="Excluir">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        async function deletarSolicitacao(id) {
+            if (!confirm('Excluir esta solicitação?')) return;
+
+            const { error } = await db
+                .from('solicitacoes')
+                .delete()
+                .eq('id', id);
+
+            if (error) {
+                alert('Erro: ' + error.message);
+                return;
+            }
+
+            listarSolicitacoes();
+        }
+    </script>
+</body>
+</html>
