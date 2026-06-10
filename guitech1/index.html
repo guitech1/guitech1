@@ -94,6 +94,76 @@
             flex: 1;
             background: linear-gradient(90deg, rgba(59,130,246,.9), rgba(16,185,129,.55));
         }
+
+        .cart-badge {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            min-width: 19px;
+            height: 19px;
+            border-radius: 999px;
+            background: #ef4444;
+            color: #fff;
+            font-size: 10px;
+            font-weight: 900;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid #020617;
+        }
+
+        .account-panel {
+            background:
+                radial-gradient(circle at top left, rgba(59,130,246,.26), transparent 34%),
+                radial-gradient(circle at bottom right, rgba(16,185,129,.16), transparent 30%),
+                linear-gradient(180deg, rgba(15,23,42,.98), rgba(2,6,23,.98));
+        }
+
+        .account-box {
+            background: rgba(15, 23, 42, .86);
+            border: 1px solid rgba(148, 163, 184, .16);
+            box-shadow: 0 16px 35px rgba(0,0,0,.32);
+        }
+
+        .account-stat {
+            background: linear-gradient(135deg, rgba(30,41,59,.95), rgba(15,23,42,.92));
+            border: 1px solid rgba(148, 163, 184, .16);
+            transition: transform .25s ease, border-color .25s ease;
+        }
+
+        .account-stat:hover {
+            transform: translateY(-3px);
+            border-color: rgba(59,130,246,.45);
+        }
+
+        .input-modern {
+            width: 100%;
+            background: rgba(2,6,23,.88);
+            border: 1px solid rgba(55,65,81,.9);
+            border-radius: 14px;
+            padding: 11px 12px;
+            color: #fff;
+            font-size: 13px;
+            outline: none;
+        }
+
+        .input-modern:focus {
+            border-color: rgba(59,130,246,.9);
+            box-shadow: 0 0 0 2px rgba(59,130,246,.22);
+        }
+
+        .settings-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 10px 12px;
+            border-bottom: 1px solid rgba(31,41,55,.9);
+            font-size: 12px;
+            color: #d1d5db;
+        }
+
+        .settings-row:last-child { border-bottom: 0; }
     </style>
 </head>
 <body class="bg-slate-950 text-gray-100 min-h-screen relative pt-[40px] flex flex-col justify-between">
@@ -120,7 +190,14 @@
                     <span class="text-xs text-gray-300 font-bold">👋 Seja bem vindo ao site</span>
                 </div>
                 
-                <nav class="hidden md:flex items-center gap-6">
+                <nav class="hidden md:flex items-center gap-4">
+                    <button onclick="abrirAreaCliente()" class="text-sm text-gray-300 hover:text-blue-400 transition-colors flex items-center gap-2 font-medium">
+                        <i class="fas fa-user-circle text-blue-500"></i> Minha Conta
+                    </button>
+                    <button onclick="abrirCarrinho()" class="relative text-sm bg-gray-800 border border-gray-700 px-4 py-1.5 rounded-full text-white font-bold flex items-center gap-2 shadow-inner hover:bg-gray-700">
+                        <i class="fas fa-cart-shopping text-green-400"></i> Carrinho
+                        <span id="cart-count" class="cart-badge">0</span>
+                    </button>
                     <a href="https://instagram.com/guilhermeelc_som" target="_blank" rel="noopener noreferrer" class="text-sm text-gray-300 hover:text-blue-400 transition-colors flex items-center gap-2 font-medium">
                         <i class="fas fa-headset text-blue-500"></i> Suporte
                     </a>
@@ -131,6 +208,15 @@
 
                 <button onclick="toggleMenu()" class="md:hidden text-gray-300 hover:text-white text-xl p-2 focus:outline-none cursor-pointer">
                     <i id="burger-icon" class="fas fa-bars"></i>
+                </button>
+            </div>
+            <div class="md:hidden grid grid-cols-2 gap-2 mt-4">
+                <button onclick="abrirAreaCliente()" class="bg-gray-900 border border-gray-800 rounded-2xl py-3 text-sm font-black text-white flex items-center justify-center gap-2 shadow-lg">
+                    <i class="fas fa-user-circle text-blue-400"></i> Conta
+                </button>
+                <button onclick="abrirCarrinho()" class="relative bg-gray-900 border border-gray-800 rounded-2xl py-3 text-sm font-black text-white flex items-center justify-center gap-2 shadow-lg">
+                    <i class="fas fa-cart-shopping text-green-400"></i> Carrinho
+                    <span id="cart-count-mobile" class="bg-red-600 text-white text-[10px] rounded-full px-2 py-0.5">0</span>
                 </button>
             </div>
 
@@ -374,6 +460,19 @@
                 <h3 class="text-xl font-black text-green-400 mb-2">Endereço cadastrado! Siga para o pagamento.</h3>
                 <p class="text-xs text-gray-400 mb-4 px-4">Tudo certo! Clique no botão abaixo para concluir o pagamento via Pix.</p>
 
+                <div id="box-criar-conta-pos-endereco" class="bg-blue-500/10 border border-blue-500/30 rounded-xl p-3 mb-3 text-center">
+                    <p class="text-[11px] text-blue-200 font-bold mb-2">Quer acompanhar seu pedido ou ganhar cupons/descontos?</p>
+                    <button onclick="abrirCadastroClienteRapido()" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-black px-4 py-2 rounded-xl"><i class="fas fa-user-plus"></i> Criar Conta</button>
+                </div>
+
+                <div id="resumo-compra-box" class="bg-gray-950 border border-gray-800 rounded-xl p-3 mb-3 text-left text-xs">
+                    <div class="flex justify-between text-gray-300"><span>Subtotal:</span><b id="resumo-subtotal">R$ 0,00</b></div>
+                    <div class="flex justify-between text-gray-300 mt-1"><span>Frete:</span><b id="resumo-frete">R$ 0,00</b></div>
+                    <div class="flex justify-between text-yellow-300 mt-1"><span>Desconto:</span><b id="resumo-desconto">R$ 0,00</b></div>
+                    <div class="flex justify-between text-green-400 mt-2 font-black border-t border-gray-800 pt-2"><span>Total Pix:</span><b id="resumo-total">R$ 0,00</b></div>
+                    <p id="resumo-frete-msg" class="text-[10px] text-blue-400 mt-2"></p>
+                </div>
+
                 <div class="bg-green-500/10 border border-green-500/30 rounded-xl p-3 mb-3 text-center">
                     <p class="text-[11px] text-green-300 font-black">
                         <i class="fas fa-shield-alt"></i> Garantia: se não receber seu pedido, reembolsamos seu pagamento.
@@ -431,6 +530,167 @@
         </div>
     </div>
 
+
+
+    <!-- Modal Avaliações do Produto -->
+    <div id="modal-avaliacoes-produto" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[75] flex items-center justify-center hidden p-4">
+        <div class="account-panel border border-gray-800 rounded-3xl max-w-md w-full p-5 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+            <button onclick="fecharAvaliacoesProduto()" class="absolute top-4 right-4 text-gray-500 hover:text-white text-xl">
+                <i class="fas fa-times"></i>
+            </button>
+
+            <div class="text-center mb-4">
+                <div class="w-14 h-14 rounded-full bg-yellow-500/10 border border-yellow-500/30 flex items-center justify-center mx-auto mb-2">
+                    <i class="fas fa-star text-yellow-400 text-2xl"></i>
+                </div>
+                <h3 class="text-xl font-black text-white">Avaliações</h3>
+                <p id="avaliacoes-produto-nome" class="text-xs text-gray-400 font-bold"></p>
+            </div>
+
+            <div id="avaliacoes-produto-lista" class="space-y-3">
+                <div class="text-center text-gray-400 text-sm py-6">Carregando avaliações...</div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Modal do Carrinho -->
+    <div id="modal-carrinho" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="account-panel border border-gray-800 rounded-3xl max-w-lg w-full p-5 shadow-2xl relative">
+            <button onclick="fecharCarrinho()" class="absolute top-4 right-4 text-gray-500 hover:text-white text-xl cursor-pointer"><i class="fas fa-times"></i></button>
+            <h3 class="text-xl font-black text-white mb-1"><i class="fas fa-cart-shopping text-green-400"></i> Meu Carrinho</h3>
+            <p class="text-xs text-gray-400 mb-4">Revise os produtos antes de finalizar o pedido.</p>
+            <div id="lista-carrinho" class="space-y-3 max-h-[42vh] overflow-y-auto pr-1"></div>
+            <div class="mt-4 account-box rounded-2xl p-4 text-sm">
+                <div class="flex justify-between text-gray-300"><span>Subtotal:</span><b id="cart-subtotal">R$ 0,00</b></div>
+                <div class="flex justify-between text-gray-300 mt-1"><span>Frete:</span><b id="cart-frete">R$ 0,00</b></div>
+                <div class="mt-3">
+                    <p class="text-[10px] text-gray-400 font-black uppercase mb-1">🎁 Cupons disponíveis</p>
+                    <div class="grid grid-cols-[1fr_auto] gap-2">
+                        <select id="cart-cupom-select" class="input-modern text-xs">
+                            <option value="">Carregando cupons...</option>
+                        </select>
+                        <button onclick="aplicarCupomSelecionadoCarrinho()" class="bg-yellow-600 hover:bg-yellow-700 text-white text-xs font-black px-3 rounded-xl">Aplicar</button>
+                    </div>
+                    <p id="cart-cupom-msg" class="text-[10px] text-yellow-300 mt-1"></p>
+                </div>
+                <div class="flex justify-between text-yellow-300 mt-2"><span>Desconto:</span><b id="cart-desconto">R$ 0,00</b></div>
+<div class="flex justify-between text-green-400 mt-2 text-base font-black border-t border-gray-800 pt-2"><span>Total:</span><b id="cart-total">R$ 0,00</b></div>
+                <p id="cart-frete-msg" class="text-[10px] text-blue-400 mt-2"></p>
+            </div>
+            <button onclick="finalizarCarrinho()" class="w-full mt-4 bg-green-600 hover:bg-green-700 text-white font-black py-3.5 px-4 rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-green-950"><i class="fas fa-check"></i> Finalizar Compra</button>
+        </div>
+    </div>
+
+    <!-- Modal da Conta do Cliente -->
+    <div id="modal-conta" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center hidden p-3">
+        <div class="account-panel border border-gray-800 rounded-3xl max-w-3xl w-full p-4 md:p-6 shadow-2xl relative max-h-[92vh] overflow-y-auto">
+            <button onclick="fecharAreaCliente()" class="absolute top-4 right-4 text-gray-500 hover:text-white text-xl cursor-pointer z-10"><i class="fas fa-times"></i></button>
+            <div id="conta-login-area">
+                <div class="text-center mb-5">
+                    <div class="w-14 h-14 rounded-full bg-blue-600/15 border border-blue-500/40 flex items-center justify-center mx-auto mb-2"><i class="fas fa-user-shield text-blue-400 text-2xl"></i></div>
+                    <h3 class="text-2xl font-black text-white font-display">Área do Cliente</h3>
+                    <p class="text-xs text-gray-400">Entre para acompanhar pedidos, cupons e descontos.</p>
+                </div>
+                <div class="grid grid-cols-2 gap-2 mb-4">
+                    <button onclick="mostrarLoginCliente()" class="bg-blue-600 hover:bg-blue-700 rounded-2xl py-3 text-xs font-black">Entrar</button>
+                    <button onclick="mostrarCadastroCliente()" class="bg-gray-800 hover:bg-gray-700 rounded-2xl py-3 text-xs font-black">Criar Conta</button>
+                </div>
+                <form id="form-login-cliente" onsubmit="loginCliente(event)" class="space-y-3 account-box rounded-2xl p-4">
+                    <h4 class="font-black text-white text-sm"><i class="fas fa-right-to-bracket text-blue-400"></i> Entrar na conta</h4>
+                    <input id="login-usuario-cliente" required placeholder="Nome de usuário" class="input-modern">
+                    <input id="login-senha-cliente" type="password" required placeholder="Senha" class="input-modern">
+                    <button class="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-3 rounded-2xl">Entrar</button>
+                    <button type="button" onclick="abrirRecuperacaoConta()" class="w-full text-[11px] text-blue-300 hover:text-blue-200 underline font-bold">Esqueceu sua senha ou usuário? Solicitar atendimento</button>
+                </form>
+                <form id="form-cadastro-cliente" onsubmit="criarContaCliente(event)" class="hidden account-box rounded-2xl p-4">
+                    <h4 class="font-black text-white text-sm mb-3 text-center"><i class="fas fa-id-card text-green-400"></i> Dados de Cadastro</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div class="md:col-span-2"><label class="block text-[10px] text-gray-400 font-bold uppercase mb-1">Nome completo</label><input id="cad-nome-completo" required placeholder="Digite seu nome completo" class="input-modern"></div>
+                        <div class="md:col-span-2"><label class="block text-[10px] text-gray-400 font-bold uppercase mb-1">E-mail</label><input id="cad-email" type="email" required placeholder="Digite seu e-mail" class="input-modern"></div>
+                        <div><label class="block text-[10px] text-gray-400 font-bold uppercase mb-1">Crie um usuário (@)</label><input id="cad-usuario" required placeholder="@dgtech" class="input-modern"></div>
+                        <div><label class="block text-[10px] text-gray-400 font-bold uppercase mb-1">WhatsApp</label><input id="cad-whatsapp" required placeholder="(00) 90000-0000" class="input-modern"></div>
+                        <div><label class="block text-[10px] text-gray-400 font-bold uppercase mb-1">Crie uma senha</label><input id="cad-senha" type="password" required placeholder="********" class="input-modern"></div>
+                        <div><label class="block text-[10px] text-gray-400 font-bold uppercase mb-1">Repetir senha</label><input id="cad-senha2" type="password" required placeholder="********" class="input-modern"></div>
+                        <div class="md:col-span-2"><label class="block text-[10px] text-gray-400 font-bold uppercase mb-1">Foto de perfil opcional</label><input id="cad-foto" type="url" placeholder="Cole o link da foto, se quiser" class="input-modern"></div>
+                    </div>
+                    <button class="w-full mt-4 bg-green-600 hover:bg-green-700 text-white font-black py-3 rounded-2xl shadow-lg shadow-green-950"><i class="fas fa-user-plus"></i> Finalizar Cadastro</button>
+                </form>
+            </div>
+            <div id="conta-logada-area" class="hidden">
+                <div class="account-box rounded-3xl p-4 mb-4"><div class="flex items-center gap-4"><img id="cliente-foto" src="" onerror="this.src='https://ui-avatars.com/api/?name=Cliente&background=2563eb&color=fff'" class="w-20 h-20 rounded-full border-2 border-blue-500 object-cover bg-gray-800"><div class="flex-1"><p class="text-[10px] text-blue-300 font-black uppercase">Meu perfil & conta</p><h3 id="cliente-nome" class="text-2xl font-black text-white leading-tight">Cliente</h3><p id="cliente-usuario" class="text-sm text-blue-300 font-bold">@usuario</p><p id="cliente-whatsapp" class="text-xs text-gray-400 mt-1"></p></div></div></div>
+                <h4 class="text-xs text-gray-400 uppercase font-black mb-2">Resumo de pedidos</h4>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4">
+                    <button onclick="carregarPedidosCliente('processando')" class="account-stat rounded-2xl p-3 text-left"><div class="text-yellow-400 text-lg"><i class="fas fa-box-open"></i></div><div id="qtd-processando" class="text-white font-black text-lg">0</div><div class="text-[10px] text-gray-400 font-bold">Processando</div></button>
+                    <button onclick="carregarPedidosCliente('enviado')" class="account-stat rounded-2xl p-3 text-left"><div class="text-blue-400 text-lg"><i class="fas fa-truck-fast"></i></div><div id="qtd-enviado" class="text-white font-black text-lg">0</div><div class="text-[10px] text-gray-400 font-bold">Enviados</div></button>
+                    <button onclick="carregarPedidosCliente('finalizado')" class="account-stat rounded-2xl p-3 text-left"><div class="text-green-400 text-lg"><i class="fas fa-circle-check"></i></div><div id="qtd-finalizado" class="text-white font-black text-lg">0</div><div class="text-[10px] text-gray-400 font-bold">Finalizados</div></button>
+                    <button onclick="carregarPedidosCliente('devolucao')" class="account-stat rounded-2xl p-3 text-left"><div class="text-red-400 text-lg"><i class="fas fa-rotate-left"></i></div><div id="qtd-devolucao" class="text-white font-black text-lg">0</div><div class="text-[10px] text-gray-400 font-bold">Devoluções</div></button>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div class="account-box rounded-2xl p-4"><h4 class="font-black text-white text-sm mb-3"><i class="fas fa-ticket text-yellow-400"></i> Meus Cupons</h4><div id="cliente-cupons" class="text-xs text-gray-400">Carregando...</div></div><div class="account-box rounded-2xl p-4"><h4 class="font-black text-white text-sm mb-3"><i class="fas fa-gear text-blue-400"></i> Configurações</h4><div class="rounded-xl overflow-hidden border border-gray-800"><button onclick="alterarFotoCliente()" class="settings-row w-full"><span><i class="fas fa-image text-blue-400"></i> Alterar foto</span><i class="fas fa-chevron-right text-gray-500"></i></button><button onclick="alterarUsuarioCliente()" class="settings-row w-full"><span><i class="fas fa-user text-green-400"></i> Alterar usuário</span><i class="fas fa-chevron-right text-gray-500"></i></button><button onclick="alterarSenhaCliente()" class="settings-row w-full"><span><i class="fas fa-lock text-yellow-400"></i> Alterar senha</span><i class="fas fa-chevron-right text-gray-500"></i></button><button onclick="alterarWhatsappCliente()" class="settings-row w-full"><span><i class="fab fa-whatsapp text-green-400"></i> Alterar WhatsApp</span><i class="fas fa-chevron-right text-gray-500"></i></button></div></div></div>
+                <div class="account-box rounded-2xl p-4 mt-4"><h4 class="font-black text-white text-sm mb-3"><i class="fas fa-box text-blue-400"></i> Meus Pedidos</h4><div id="cliente-pedidos" class="space-y-2 text-xs text-gray-300 max-h-[35vh] overflow-y-auto">Selecione uma categoria.</div></div>
+                <button onclick="sairCliente()" class="w-full mt-4 bg-red-600 hover:bg-red-700 text-white font-black py-3 rounded-2xl">Sair</button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Modal Editar Perfil sem prompt branco -->
+    <div id="modal-editar-perfil" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[80] flex items-center justify-center hidden p-4">
+        <div class="account-panel border border-gray-800 rounded-3xl max-w-md w-full p-5 shadow-2xl relative">
+            <button onclick="fecharModalEditarPerfil()" class="absolute top-4 right-4 text-gray-500 hover:text-white text-xl">
+                <i class="fas fa-times"></i>
+            </button>
+
+            <h3 id="editar-perfil-titulo" class="text-xl font-black text-white mb-1">
+                <i class="fas fa-user-pen text-blue-400"></i> Editar Perfil
+            </h3>
+            <p id="editar-perfil-descricao" class="text-xs text-gray-400 mb-4">
+                Atualize seus dados com segurança.
+            </p>
+
+            <form onsubmit="salvarEdicaoPerfil(event)" class="space-y-3">
+                <input type="hidden" id="editar-perfil-tipo">
+
+                <div id="editar-campo-unico">
+                    <label id="editar-label-1" class="block text-[10px] text-gray-400 font-bold uppercase mb-1">Novo dado</label>
+                    <input id="editar-valor-1" class="input-modern" placeholder="Digite aqui">
+                </div>
+
+                <div id="editar-campo-confirmar" class="hidden">
+                    <label id="editar-label-2" class="block text-[10px] text-gray-400 font-bold uppercase mb-1">Confirmar</label>
+                    <input id="editar-valor-2" class="input-modern" placeholder="Confirme aqui">
+                </div>
+
+                <div class="grid grid-cols-2 gap-2 pt-2">
+                    <button type="button" onclick="fecharModalEditarPerfil()" class="bg-gray-800 hover:bg-gray-700 text-white font-black py-3 rounded-2xl">
+                        Cancelar
+                    </button>
+                    <button class="bg-green-600 hover:bg-green-700 text-white font-black py-3 rounded-2xl">
+                        <i class="fas fa-save"></i> Salvar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+
+    <!-- Recuperação de Conta -->
+    <div id="modal-recuperacao" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[70] flex items-center justify-center hidden p-4">
+        <div class="account-panel border border-gray-800 rounded-3xl max-w-md w-full p-5 shadow-2xl relative">
+            <button onclick="fecharRecuperacaoConta()" class="absolute top-4 right-4 text-gray-500 hover:text-white text-xl"><i class="fas fa-times"></i></button>
+            <h3 class="text-xl font-black text-white mb-1"><i class="fas fa-headset text-blue-400"></i> Recuperar acesso</h3>
+            <p class="text-xs text-gray-400 mb-4">Informe seus dados e nossa equipe entrará em contato com segurança.</p>
+            <form onsubmit="solicitarRecuperacao(event)" class="space-y-3">
+                <input id="rec-nome" required placeholder="Nome" class="input-modern">
+                <input id="rec-email" type="email" required placeholder="E-mail" class="input-modern">
+                <input id="rec-whatsapp" required placeholder="WhatsApp" class="input-modern">
+                <select id="rec-motivo" class="input-modern"><option value="Esqueci minha senha">Esqueci minha senha</option><option value="Esqueci meu usuário">Esqueci meu usuário</option><option value="Esqueci senha e usuário">Esqueci senha e usuário</option></select>
+                <button class="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-3 rounded-2xl"><i class="fas fa-paper-plane"></i> Solicitar Atendimento</button>
+            </form>
+        </div>
+    </div>
+
+
     <a href="https://instagram.com/guilhermeelc_som" target="_blank" rel="noopener noreferrer" class="fixed bottom-6 left-6 bg-blue-600 text-white hover:bg-blue-700 px-3 h-12 rounded-full flex items-center justify-center gap-1.5 shadow-2xl border border-blue-500 z-40 transition-transform hover:scale-110 active:scale-95 font-bold text-xs" title="Chat / Suporte">
         <i class="fas fa-user-tie text-base"></i> <span>Suporte</span>
     </a>
@@ -448,7 +708,7 @@
             <div class="flex flex-col md:flex-row items-center justify-center gap-3">
                 <div class="bg-white text-gray-950 rounded-full px-4 py-2 shadow-lg border-2 border-blue-500 flex items-center gap-2 font-black text-xs md:text-sm">
                     <span class="bg-blue-600 text-white px-2 py-1 rounded-full text-[10px]">JUMPFY</span>
-                    <span>Checkout seguro</span>
+                    <span>Seguro</span>
                     <i class="fas fa-shield-alt text-green-600"></i>
                 </div>
                 <div class="bg-gray-950 border border-gray-700 rounded-2xl px-4 py-2 text-[10px] md:text-xs text-gray-300 shadow-lg max-w-full">
@@ -482,8 +742,114 @@
         let produtoAtualPreco = 0;
         let enderecoPedidoAtual = null;
         let produtosCache = [];
+        let carrinho = JSON.parse(localStorage.getItem('carrinho_guitech') || '[]');
+        let clienteLogado = JSON.parse(localStorage.getItem('cliente_guitech') || 'null');
+        let itensPedidoAtual = [];
+        let subtotalPedidoAtual = 0;
+        let descontoPedidoAtual = 0;
+        let cupomAplicadoAtual = null;
+        let fretePedidoAtual = 0;
+        let totalPedidoAtual = 0;
 
-        window.onload = function() { renderizarVitrine(); };
+        window.onload = function() {
+            renderizarVitrine();
+            atualizarContadorCarrinho();
+            atualizarInterfaceCliente();
+        };
+
+        function dinheiro(valor) { return 'R$ ' + Number(valor || 0).toFixed(2).replace('.', ','); }
+        function salvarCarrinhoLocal() { localStorage.setItem('carrinho_guitech', JSON.stringify(carrinho)); atualizarContadorCarrinho(); }
+        function atualizarContadorCarrinho() { const qtd = carrinho.reduce((acc, item) => acc + Number(item.quantidade || 1), 0); const el = document.getElementById('cart-count'); const mob = document.getElementById('cart-count-mobile'); if (el) el.textContent = qtd; if (mob) mob.textContent = qtd; }
+        function calcularFrete(subtotal) { if (Number(subtotal) >= 60) return { valor: 0, msg: '🎉 Compra acima de R$60 com frete grátis!' }; return { valor: 5.57, msg: 'Frete fixo de R$5,57 para compras abaixo de R$60.' }; }
+
+        function recalcularTotalComCupom() {
+            const frete = calcularFrete(subtotalPedidoAtual);
+            fretePedidoAtual = frete.valor;
+            descontoPedidoAtual = cupomAplicadoAtual ? subtotalPedidoAtual * (Number(cupomAplicadoAtual.desconto || 0) / 100) : 0;
+            descontoPedidoAtual = Math.min(descontoPedidoAtual, subtotalPedidoAtual);
+            totalPedidoAtual = Math.max(0, subtotalPedidoAtual - descontoPedidoAtual + fretePedidoAtual);
+            produtoAtualPreco = totalPedidoAtual;
+        }
+
+        async function carregarCuponsNoCarrinho() {
+            const select = document.getElementById('cart-cupom-select');
+            const msg = document.getElementById('cart-cupom-msg');
+            if (!select) return;
+
+            select.innerHTML = '<option value="">Carregando cupons...</option>';
+            if (msg) msg.textContent = '';
+
+            try {
+                const { data, error } = await db.from('cupons').select('id,codigo,desconto,ativo').eq('ativo', true);
+                if (error) throw error;
+
+                const cupons = data || [];
+                if (cupons.length === 0) {
+                    select.innerHTML = '<option value="">Nenhum cupom disponível</option>';
+                    return;
+                }
+
+                select.innerHTML = '<option value="">Selecionar cupom</option>' + cupons.map(c => `<option value="${c.codigo}">${c.codigo} - ${c.desconto}% OFF</option>`).join('');
+
+                if (cupomAplicadoAtual) {
+                    select.value = cupomAplicadoAtual.codigo;
+                    if (msg) msg.textContent = `✅ Cupom ${cupomAplicadoAtual.codigo} aplicado (${cupomAplicadoAtual.desconto}% OFF)`;
+                }
+            } catch (err) {
+                select.innerHTML = '<option value="">Erro ao carregar cupons</option>';
+                if (msg) msg.textContent = err.message || 'Erro desconhecido';
+                console.error('Erro ao carregar cupons:', err);
+            }
+        }
+
+        async function aplicarCupomSelecionadoCarrinho() {
+            const select = document.getElementById('cart-cupom-select');
+            const codigo = select ? select.value : '';
+
+            if (!codigo) {
+                alert('Selecione um cupom.');
+                return;
+            }
+
+            try {
+                const { data, error } = await db.from('cupons').select('id,codigo,desconto,ativo').eq('codigo', codigo).eq('ativo', true).maybeSingle();
+                if (error) throw error;
+                if (!data) {
+                    alert('Cupom inválido ou inativo.');
+                    return;
+                }
+
+                cupomAplicadoAtual = data;
+                subtotalPedidoAtual = carrinho.reduce((acc, item) => acc + (Number(item.preco_final || 0) * Number(item.quantidade || 1)), 0);
+                recalcularTotalComCupom();
+                renderizarCarrinho();
+
+                setTimeout(() => {
+                    carregarCuponsNoCarrinho();
+                    const msgNovo = document.getElementById('cart-cupom-msg');
+                    if (msgNovo) msgNovo.textContent = `✅ Cupom ${data.codigo} aplicado (${data.desconto}% OFF)`;
+                }, 100);
+            } catch (err) {
+                alert('Erro ao aplicar cupom: ' + (err.message || err));
+                console.error('Erro ao aplicar cupom:', err);
+            }
+        }
+
+        function prepararPedido(itens) {
+            itensPedidoAtual = itens.map(item => ({
+                id: item.id,
+                nome: item.nome,
+                preco: Number(item.preco_final || item.preco || 0),
+                quantidade: Number(item.quantidade || 1),
+                estoque: Number(item.estoque || 0)
+            }));
+
+            subtotalPedidoAtual = itensPedidoAtual.reduce((acc, item) => acc + (item.preco * item.quantidade), 0);
+            recalcularTotalComCupom();
+
+            produtoAtualNome = itensPedidoAtual.length === 1 ? itensPedidoAtual[0].nome : `${itensPedidoAtual.length} produtos no carrinho`;
+            produtoAtualPreco = totalPedidoAtual;
+        }
 
         function toggleMenu() {
             const menu = document.getElementById('mobile-menu');
@@ -612,9 +978,17 @@
                                 <div class="mb-1.5">
                                     ${blocoPreco}
                                 </div>
-                                <button ${!temEstoque ? 'disabled' : ''} onclick="abrirModalEndereco('${item.nome}', '${precoExibicao}', '${item.link_pagamento || '#'}')" class="w-full ${temEstoque ? 'bg-blue-500 hover:bg-blue-400 btn-comprar-pulse shadow-lg shadow-blue-950/80' : 'bg-gray-800 text-gray-500 cursor-not-allowed'} text-white font-black py-1.5 px-1.5 rounded-xl transition-all duration-300 ease-in-out cursor-pointer flex items-center justify-center gap-1 text-[10px]">
-                                    <i class="fas fa-shopping-bag text-[8px]"></i> ${temEstoque ? 'Comprar Agora' : 'Off'}
-                                </button>
+                                <div class="grid grid-cols-1 gap-1">
+                                    <button ${!temEstoque ? 'disabled' : ''} onclick='adicionarAoCarrinho(${JSON.stringify(item).replace(/'/g, "&apos;")})' class="w-full ${temEstoque ? 'bg-gray-800 hover:bg-gray-700 border border-gray-700' : 'bg-gray-800 text-gray-500 cursor-not-allowed'} text-white font-black py-1.5 px-1.5 rounded-xl transition-all duration-300 ease-in-out cursor-pointer flex items-center justify-center gap-1 text-[10px]">
+                                        <i class="fas fa-cart-plus text-[8px]"></i> ${temEstoque ? 'Adicionar' : 'Esgotado'}
+                                    </button>
+                                    <button ${!temEstoque ? 'disabled' : ''} onclick='comprarAgoraProduto(${JSON.stringify(item).replace(/'/g, "&apos;")})' class="w-full ${temEstoque ? 'bg-blue-500 hover:bg-blue-400 btn-comprar-pulse shadow-lg shadow-blue-950/80' : 'bg-gray-800 text-gray-500 cursor-not-allowed'} text-white font-black py-1.5 px-1.5 rounded-xl transition-all duration-300 ease-in-out cursor-pointer flex items-center justify-center gap-1 text-[10px]">
+                                        <i class="fas fa-shopping-bag text-[8px]"></i> ${temEstoque ? 'Comprar Agora' : 'Off'}
+                                    </button>
+                                    <button onclick='abrirAvaliacoesProduto(${item.id}, ${JSON.stringify(item.nome)})' class="w-full bg-yellow-500/10 hover:bg-yellow-500/20 border border-yellow-500/30 text-yellow-300 font-black py-1.5 px-1.5 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1 text-[10px]">
+                                        <i class="fas fa-star text-[8px]"></i> Avaliações
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -622,14 +996,400 @@
             });
         }
 
+
+
+        async function abrirAvaliacoesProduto(produtoId, produtoNome) {
+            const modal = document.getElementById('modal-avaliacoes-produto');
+            const titulo = document.getElementById('avaliacoes-produto-nome');
+            const lista = document.getElementById('avaliacoes-produto-lista');
+
+            if (!modal || !lista) return;
+
+            titulo.textContent = produtoNome || 'Produto';
+            lista.innerHTML = `<div class="text-center text-gray-400 text-sm py-6"><i class="fas fa-spinner animate-spin text-yellow-400"></i><br>Carregando avaliações...</div>`;
+            modal.classList.remove('hidden');
+
+            try {
+                const { data, error } = await db
+                    .from('avaliacoes')
+                    .select('*')
+                    .eq('produto_id', produtoId)
+                    .eq('ativo', true)
+                    .order('criado_em', { ascending: false });
+
+                if (error) throw error;
+
+                if (!data || data.length === 0) {
+                    lista.innerHTML = `
+                        <div class="bg-gray-950 border border-gray-800 rounded-2xl p-4 text-center">
+                            <i class="far fa-star text-yellow-500 text-2xl"></i>
+                            <p class="text-sm text-gray-400 mt-2">Esse produto ainda não possui avaliações.</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                const media = data.reduce((acc, a) => acc + Number(a.estrelas || 5), 0) / data.length;
+
+                lista.innerHTML = `
+                    <div class="bg-yellow-500/10 border border-yellow-500/30 rounded-2xl p-3 text-center mb-3">
+                        <div class="text-yellow-400 text-lg">${'⭐'.repeat(Math.round(media))}</div>
+                        <p class="text-xs text-yellow-200 font-black">${media.toFixed(1)} de 5 • ${data.length === 1 ? '1 avaliação' : data.length + ' avaliações'}</p>
+                    </div>
+                    ${data.map(a => {
+                        const foto = a.foto_perfil || `https://ui-avatars.com/api/?name=${encodeURIComponent(a.nome || 'Cliente')}&background=2563eb&color=fff`;
+                        return `
+                        <div class="bg-gray-950 border border-gray-800 rounded-2xl p-3">
+                            <div class="flex items-start gap-3 mb-2">
+                                <img src="${foto}" onerror="this.src='https://ui-avatars.com/api/?name=Cliente&background=2563eb&color=fff'" class="w-11 h-11 rounded-full object-cover border border-blue-500 bg-gray-800">
+                                <div class="flex-1">
+                                    <div class="flex justify-between items-start gap-2">
+                                        <div>
+                                            <h4 class="text-white font-black text-sm">${a.nome || 'Cliente'}</h4>
+                                            <div class="text-yellow-400 text-xs">${'⭐'.repeat(Number(a.estrelas || 5))}</div>
+                                        </div>
+                                        <span class="text-[9px] bg-green-500/10 border border-green-500/30 text-green-400 rounded-full px-2 py-1 font-black">Verificado</span>
+                                    </div>
+                                    <p class="text-xs text-gray-300 leading-relaxed mt-2">${a.comentario || ''}</p>
+                                    ${a.foto_produto ? `
+                                        <div class="mt-3">
+                                            <p class="text-[10px] text-gray-500 font-bold uppercase mb-1">Foto do produto recebido</p>
+                                            <img src="${a.foto_produto}" class="w-full max-h-52 object-cover rounded-xl border border-gray-800">
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        </div>
+                        `;
+                    }).join('')}
+                `;
+            } catch (err) {
+                lista.innerHTML = `<div class="text-red-400 text-sm text-center py-6">Erro ao carregar avaliações: ${err.message}</div>`;
+            }
+        }
+
+        function fecharAvaliacoesProduto() {
+            const modal = document.getElementById('modal-avaliacoes-produto');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        async function carregarCuponsNoCarrinho() {
+            const select = document.getElementById('cart-cupom-select');
+            const msg = document.getElementById('cart-cupom-msg');
+            if (!select) return;
+
+            select.innerHTML = '<option value="">Carregando cupons...</option>';
+            if (msg) msg.textContent = '';
+
+            try {
+                const { data, error } = await db
+                    .from('cupons')
+                    .select('id,codigo,desconto,ativo')
+                    .eq('ativo', true)
+                    .order('id', { ascending: false });
+
+                if (error) throw error;
+
+                const cupons = data || [];
+
+                if (cupons.length === 0) {
+                    select.innerHTML = '<option value="">Nenhum cupom disponível</option>';
+                    return;
+                }
+
+                select.innerHTML = '<option value="">Selecionar cupom</option>' + cupons.map(c => {
+                    return `<option value="${c.codigo}">${c.codigo} - ${c.desconto}% OFF</option>`;
+                }).join('');
+
+                if (cupomAplicadoAtual) {
+                    select.value = cupomAplicadoAtual.codigo;
+                    if (msg) msg.textContent = `✅ Cupom ${cupomAplicadoAtual.codigo} aplicado (${cupomAplicadoAtual.desconto}% OFF)`;
+                }
+            } catch (err) {
+                select.innerHTML = '<option value="">Erro ao carregar cupons</option>';
+                if (msg) msg.textContent = err.message || 'Erro desconhecido';
+                console.error('Erro ao carregar cupons:', err);
+            }
+        }
+
+        async function aplicarCupomSelecionadoCarrinho() {
+            const select = document.getElementById('cart-cupom-select');
+            const msg = document.getElementById('cart-cupom-msg');
+
+            const codigo = select ? select.value : '';
+            if (!codigo) {
+                alert('Selecione um cupom.');
+                return;
+            }
+
+            try {
+                const { data, error } = await db
+                    .from('cupons')
+                    .select('id,codigo,desconto,ativo')
+                    .eq('codigo', codigo)
+                    .eq('ativo', true)
+                    .maybeSingle();
+
+                if (error) throw error;
+                if (!data) {
+                    alert('Cupom inválido ou inativo.');
+                    return;
+                }
+
+                cupomAplicadoAtual = data;
+
+                const subtotal = carrinho.reduce((acc, item) => acc + (Number(item.preco_final || 0) * Number(item.quantidade || 1)), 0);
+                subtotalPedidoAtual = subtotal;
+
+                recalcularTotalComCupom();
+                renderizarCarrinho();
+
+                setTimeout(() => {
+                    carregarCuponsNoCarrinho();
+                    const msgNovo = document.getElementById('cart-cupom-msg');
+                    if (msgNovo) msgNovo.textContent = `✅ Cupom ${data.codigo} aplicado (${data.desconto}% OFF)`;
+                }, 100);
+
+                if (typeof mostrarToast === 'function') mostrarToast(`Cupom ${data.codigo} aplicado!`);
+            } catch (err) {
+                alert('Erro ao aplicar cupom: ' + (err.message || err));
+                console.error('Erro ao aplicar cupom:', err);
+            }
+        }
+
+        function produtoParaItem(item) { const precoFinal = item.preco_promocional && Number(item.preco_promocional) > 0 ? Number(item.preco_promocional) : Number(item.preco || 0); return { id: item.id, nome: item.nome, preco: Number(item.preco || 0), preco_final: precoFinal, imagem_url: item.imagem_url, estoque: Number(item.estoque || 0), quantidade: 1 }; }
+        function adicionarAoCarrinho(item) { const novo = produtoParaItem(item); const existente = carrinho.find(p => Number(p.id) === Number(novo.id)); if (existente) { if (existente.quantidade >= novo.estoque) return alert('Quantidade máxima em estoque já adicionada.'); existente.quantidade += 1; } else carrinho.push(novo); salvarCarrinhoLocal(); alert('Produto adicionado ao carrinho!'); }
+        function comprarAgoraProduto(item) { const novo = produtoParaItem(item); prepararPedido([novo]); abrirModalEndereco(produtoAtualNome, totalPedidoAtual.toFixed(2), item.link_pagamento || '#'); }
+        function abrirCarrinho() {
+            renderizarCarrinho();
+            document.getElementById('modal-carrinho').classList.remove('hidden');
+            setTimeout(() => {
+                if (typeof carregarCuponsNoCarrinho === 'function') carregarCuponsNoCarrinho();
+            }, 100);
+        }
+
+        function fecharCarrinho() { document.getElementById('modal-carrinho').classList.add('hidden'); }
+        function alterarQuantidadeCarrinho(id, delta) { const item = carrinho.find(p => Number(p.id) === Number(id)); if (!item) return; const novaQtd = Number(item.quantidade || 1) + delta; if (novaQtd <= 0) carrinho = carrinho.filter(p => Number(p.id) !== Number(id)); else if (novaQtd > Number(item.estoque || 0)) alert('Não há mais estoque disponível para este produto.'); else item.quantidade = novaQtd; salvarCarrinhoLocal(); renderizarCarrinho(); }
+        function removerDoCarrinho(id) { carrinho = carrinho.filter(p => Number(p.id) !== Number(id)); salvarCarrinhoLocal(); renderizarCarrinho(); }
+        function renderizarCarrinho() {
+            const lista = document.getElementById('lista-carrinho');
+            if (!lista) return;
+
+            if (carrinho.length === 0) {
+                lista.innerHTML = `<p class="text-sm text-gray-400 text-center py-6">Seu carrinho está vazio.</p>`;
+                document.getElementById('cart-subtotal').textContent = dinheiro(0);
+                document.getElementById('cart-frete').textContent = dinheiro(0);
+                const descontoEl = document.getElementById('cart-desconto');
+                if (descontoEl) descontoEl.textContent = dinheiro(0);
+                document.getElementById('cart-total').textContent = dinheiro(0);
+                document.getElementById('cart-frete-msg').textContent = '';
+                return;
+            }
+
+            lista.innerHTML = carrinho.map(item => `
+                <div class="bg-gray-950 border border-gray-800 rounded-xl p-3 flex gap-3">
+                    <img src="${item.imagem_url || ''}" class="w-14 h-14 rounded-lg object-cover bg-gray-800">
+                    <div class="flex-1">
+                        <h4 class="text-sm font-black text-white">${item.nome}</h4>
+                        <p class="text-xs text-green-400 font-bold">${dinheiro(item.preco_final)}</p>
+                        <div class="flex items-center gap-2 mt-2">
+                            <button onclick="alterarQuantidadeCarrinho(${item.id}, -1)" class="bg-gray-800 px-2 rounded">-</button>
+                            <span class="text-xs font-bold">${item.quantidade}</span>
+                            <button onclick="alterarQuantidadeCarrinho(${item.id}, 1)" class="bg-gray-800 px-2 rounded">+</button>
+                            <button onclick="removerDoCarrinho(${item.id})" class="ml-auto text-red-400 text-xs"><i class="fas fa-trash"></i></button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            subtotalPedidoAtual = carrinho.reduce((acc, item) => acc + (Number(item.preco_final || 0) * Number(item.quantidade || 1)), 0);
+            recalcularTotalComCupom();
+
+            document.getElementById('cart-subtotal').textContent = dinheiro(subtotalPedidoAtual);
+            document.getElementById('cart-frete').textContent = fretePedidoAtual === 0 ? 'Grátis 🎉' : dinheiro(fretePedidoAtual);
+            const descontoEl = document.getElementById('cart-desconto');
+            if (descontoEl) descontoEl.textContent = descontoPedidoAtual > 0 ? '- ' + dinheiro(descontoPedidoAtual) : dinheiro(0);
+            document.getElementById('cart-total').textContent = dinheiro(totalPedidoAtual);
+            document.getElementById('cart-frete-msg').textContent = cupomAplicadoAtual ? `Cupom ${cupomAplicadoAtual.codigo} aplicado` : '';
+        }
+
+        function finalizarCarrinho() {
+            if (carrinho.length === 0) return alert('Seu carrinho está vazio.');
+            prepararPedido(carrinho);
+            fecharCarrinho();
+            abrirModalEndereco(produtoAtualNome, totalPedidoAtual.toFixed(2), '#');
+        }
+
+        function abrirAreaCliente() { atualizarInterfaceCliente(); document.getElementById('modal-conta').classList.remove('hidden'); }
+        function fecharAreaCliente() { document.getElementById('modal-conta').classList.add('hidden'); }
+        function mostrarLoginCliente() { document.getElementById('form-login-cliente').classList.remove('hidden'); document.getElementById('form-cadastro-cliente').classList.add('hidden'); }
+        function mostrarCadastroCliente() { document.getElementById('form-login-cliente').classList.add('hidden'); document.getElementById('form-cadastro-cliente').classList.remove('hidden'); }
+        function abrirCadastroClienteRapido() { abrirAreaCliente(); mostrarCadastroCliente(); }
+        function atualizarInterfaceCliente() { const loginArea = document.getElementById('conta-login-area'); const logadaArea = document.getElementById('conta-logada-area'); if (!loginArea || !logadaArea) return; if (clienteLogado) { loginArea.classList.add('hidden'); logadaArea.classList.remove('hidden'); document.getElementById('cliente-nome').textContent = clienteLogado.nome_completo || clienteLogado.usuario || 'Cliente'; document.getElementById('cliente-usuario').textContent = '@' + clienteLogado.usuario; document.getElementById('cliente-whatsapp').textContent = 'WhatsApp: ' + (clienteLogado.whatsapp || ''); document.getElementById('cliente-foto').src = clienteLogado.foto_perfil || `https://ui-avatars.com/api/?name=${encodeURIComponent(clienteLogado.usuario)}&background=2563eb&color=fff`; carregarResumoPedidosCliente(); carregarCuponsCliente(); carregarPedidosCliente('processando'); } else { loginArea.classList.remove('hidden'); logadaArea.classList.add('hidden'); } }
+        async function criarContaCliente(event) { event.preventDefault(); const nomeCompleto = document.getElementById('cad-nome-completo').value.trim(); const email = document.getElementById('cad-email').value.trim().toLowerCase(); const usuario = document.getElementById('cad-usuario').value.trim().toLowerCase().replace('@', ''); const whatsapp = document.getElementById('cad-whatsapp').value.replace(/\D/g, ''); const senha = document.getElementById('cad-senha').value; const senha2 = document.getElementById('cad-senha2').value; const foto = document.getElementById('cad-foto').value.trim() || null; if (usuario.length < 4) return alert('O nome de usuário precisa ter pelo menos 4 caracteres.'); if (senha !== senha2) return alert('As senhas estão diferentes.'); if (!(whatsapp.length === 10 || whatsapp.length === 11)) return alert('Digite um WhatsApp completo com DDD.'); const { data: existe } = await db.from('usuarios_loja').select('id').eq('usuario', usuario).maybeSingle(); if (existe) return alert('Esse nome de usuário já está em uso.'); const payload = { usuario, senha, whatsapp, foto_perfil: foto, primeira_compra: false, nome_completo: nomeCompleto, email }; const { data, error } = await db.from('usuarios_loja').insert([payload]).select().single(); if (error) return alert('Erro ao criar conta: ' + error.message); clienteLogado = data; localStorage.setItem('cliente_guitech', JSON.stringify(clienteLogado)); if (enderecoPedidoAtual) enderecoPedidoAtual.usuario_id = clienteLogado.id; alert('Conta criada com sucesso!'); fecharAreaCliente(); atualizarResumoCompra(); }
+        async function loginCliente(event) { event.preventDefault(); const usuario = document.getElementById('login-usuario-cliente').value.trim().toLowerCase().replace('@', ''); const senha = document.getElementById('login-senha-cliente').value; const { data, error } = await db.from('usuarios_loja').select('*').eq('usuario', usuario).eq('senha', senha).maybeSingle(); if (error || !data) return alert('Usuário ou senha incorretos.'); clienteLogado = data; localStorage.setItem('cliente_guitech', JSON.stringify(clienteLogado)); if (enderecoPedidoAtual) enderecoPedidoAtual.usuario_id = clienteLogado.id; alert('Login realizado!'); atualizarInterfaceCliente(); atualizarResumoCompra(); }
+        function sairCliente() { clienteLogado = null; localStorage.removeItem('cliente_guitech'); atualizarInterfaceCliente(); atualizarResumoCompra(); }
+        async function carregarResumoPedidosCliente() { if (!clienteLogado) return; for (const st of ['processando','enviado','finalizado','devolucao']) { const { count } = await db.from('pedidos').select('id', { count: 'exact', head: true }).eq('usuario_id', clienteLogado.id).eq('status', st); const el = document.getElementById('qtd-' + st); if (el) el.textContent = count || 0; } }
+        async function carregarCuponsCliente() { const box = document.getElementById('cliente-cupons'); if (!box || !clienteLogado) return; const { data } = await db.from('cupons').select('*').eq('usuario_id', clienteLogado.id).eq('ativo', true); if (!data || data.length === 0) { box.innerHTML = 'Nenhum cupom disponível no momento.'; return; } box.innerHTML = data.map(c => `<div class="bg-yellow-500/10 border border-yellow-500/30 text-yellow-300 rounded-xl p-2 mb-2 font-bold">${c.codigo} - ${c.desconto}% OFF</div>`).join(''); }
+        async function carregarPedidosCliente(status) { const box = document.getElementById('cliente-pedidos'); if (!box || !clienteLogado) return; box.innerHTML = 'Carregando...'; const { data } = await db.from('pedidos').select('*').eq('usuario_id', clienteLogado.id).eq('status', status).order('criado_em', { ascending: false }); if (!data || data.length === 0) { box.innerHTML = 'Nenhum pedido nessa categoria.'; return; } box.innerHTML = data.map(p => `<div class="bg-gray-900 border border-gray-800 rounded-xl p-3 mb-2"><div class="font-black text-white">${p.produto || 'Pedido'}</div><div class="text-green-400 font-bold">${dinheiro(p.total || p.valor)}</div><div class="text-gray-400">Status: ${p.status}</div><div class="text-gray-400">Local: ${p.cidade_atual || 'Aguardando atualização'}</div><div class="text-gray-400">Rastreio: ${p.rastreio || 'Ainda não informado'}</div></div>`).join(''); }
+        function abrirModalEditarPerfil(tipo) {
+            if (!clienteLogado) return;
+
+            const modal = document.getElementById('modal-editar-perfil');
+            const titulo = document.getElementById('editar-perfil-titulo');
+            const desc = document.getElementById('editar-perfil-descricao');
+            const tipoInput = document.getElementById('editar-perfil-tipo');
+            const label1 = document.getElementById('editar-label-1');
+            const valor1 = document.getElementById('editar-valor-1');
+            const campo2 = document.getElementById('editar-campo-confirmar');
+            const label2 = document.getElementById('editar-label-2');
+            const valor2 = document.getElementById('editar-valor-2');
+
+            tipoInput.value = tipo;
+            valor1.value = '';
+            valor2.value = '';
+            campo2.classList.add('hidden');
+            valor1.type = 'text';
+            valor2.type = 'text';
+
+            if (tipo === 'foto') {
+                titulo.innerHTML = '<i class="fas fa-image text-blue-400"></i> Alterar Foto';
+                desc.textContent = 'Cole o link da nova foto de perfil.';
+                label1.textContent = 'Link da nova foto';
+                valor1.placeholder = 'https://exemplo.com/foto.jpg';
+                valor1.value = clienteLogado.foto_perfil || '';
+            }
+
+            if (tipo === 'usuario') {
+                titulo.innerHTML = '<i class="fas fa-user text-green-400"></i> Alterar Usuário';
+                desc.textContent = 'Escolha um novo nome de usuário.';
+                label1.textContent = 'Novo usuário';
+                valor1.placeholder = '@novo_usuario';
+                valor1.value = clienteLogado.usuario || '';
+            }
+
+            if (tipo === 'senha') {
+                titulo.innerHTML = '<i class="fas fa-lock text-yellow-400"></i> Alterar Senha';
+                desc.textContent = 'Digite a nova senha e confirme para evitar erro.';
+                label1.textContent = 'Nova senha';
+                label2.textContent = 'Confirmar nova senha';
+                valor1.placeholder = 'Digite a nova senha';
+                valor2.placeholder = 'Repita a nova senha';
+                valor1.type = 'password';
+                valor2.type = 'password';
+                campo2.classList.remove('hidden');
+            }
+
+            if (tipo === 'whatsapp') {
+                titulo.innerHTML = '<i class="fab fa-whatsapp text-green-400"></i> Alterar WhatsApp';
+                desc.textContent = 'Digite o novo WhatsApp com DDD.';
+                label1.textContent = 'Novo WhatsApp';
+                valor1.placeholder = '(00) 90000-0000';
+                valor1.value = clienteLogado.whatsapp || '';
+            }
+
+            modal.classList.remove('hidden');
+        }
+
+        function fecharModalEditarPerfil() {
+            document.getElementById('modal-editar-perfil').classList.add('hidden');
+        }
+
+        async function salvarEdicaoPerfil(event) {
+            event.preventDefault();
+            if (!clienteLogado) return;
+
+            const tipo = document.getElementById('editar-perfil-tipo').value;
+            let valor1 = document.getElementById('editar-valor-1').value.trim();
+            let valor2 = document.getElementById('editar-valor-2').value.trim();
+
+            let update = {};
+
+            if (tipo === 'foto') {
+                if (!valor1) return alert('Cole o link da foto.');
+                update = { foto_perfil: valor1 };
+            }
+
+            if (tipo === 'usuario') {
+                const usuario = valor1.toLowerCase().replace('@', '');
+                if (usuario.length < 4) return alert('Usuário precisa ter pelo menos 4 caracteres.');
+
+                const { data: existe } = await db.from('usuarios_loja').select('id').eq('usuario', usuario).maybeSingle();
+                if (existe && existe.id !== clienteLogado.id) return alert('Esse usuário já está em uso.');
+
+                update = { usuario };
+            }
+
+            if (tipo === 'senha') {
+                if (valor1.length < 4) return alert('Senha muito curta.');
+                if (valor1 !== valor2) return alert('As senhas estão diferentes.');
+                update = { senha: valor1 };
+            }
+
+            if (tipo === 'whatsapp') {
+                const whatsapp = valor1.replace(/\D/g, '');
+                if (!(whatsapp.length === 10 || whatsapp.length === 11)) return alert('WhatsApp inválido. Digite com DDD.');
+                update = { whatsapp };
+            }
+
+            const { error } = await db.from('usuarios_loja').update(update).eq('id', clienteLogado.id);
+
+            if (error) {
+                alert('Erro ao atualizar: ' + error.message);
+                return;
+            }
+
+            clienteLogado = { ...clienteLogado, ...update };
+            localStorage.setItem('cliente_guitech', JSON.stringify(clienteLogado));
+            atualizarInterfaceCliente();
+            fecharModalEditarPerfil();
+            if (typeof mostrarToast === 'function') mostrarToast('Dados atualizados com sucesso!');
+            else alert('Dados atualizados com sucesso!');
+        }
+
+        function alterarFotoCliente() { abrirModalEditarPerfil('foto'); }
+        function alterarUsuarioCliente() { abrirModalEditarPerfil('usuario'); }
+        function alterarSenhaCliente() { abrirModalEditarPerfil('senha'); }
+        function alterarWhatsappCliente() { abrirModalEditarPerfil('whatsapp'); }
+
+        function abrirRecuperacaoConta() { document.getElementById('modal-recuperacao').classList.remove('hidden'); }
+        function fecharRecuperacaoConta() { document.getElementById('modal-recuperacao').classList.add('hidden'); }
+        async function solicitarRecuperacao(event) { event.preventDefault(); const dados = { tipo: 'Recuperação de conta', mensagem: document.getElementById('rec-motivo').value, nome: document.getElementById('rec-nome').value.trim(), telefone: document.getElementById('rec-whatsapp').value.replace(/\D/g, ''), instagram: document.getElementById('rec-email').value.trim() }; const { error } = await db.from('solicitacoes').insert([dados]); if (error) return alert('Erro ao solicitar atendimento: ' + error.message); alert('Solicitação enviada! Nossa equipe entrará em contato.'); event.target.reset(); fecharRecuperacaoConta(); }
+        function atualizarResumoCompra() {
+            const subtotalEl = document.getElementById('resumo-subtotal');
+            if (!subtotalEl) return;
+
+            recalcularTotalComCupom();
+
+            document.getElementById('resumo-subtotal').textContent = dinheiro(subtotalPedidoAtual);
+            document.getElementById('resumo-frete').textContent = fretePedidoAtual === 0 ? 'Grátis 🎉' : dinheiro(fretePedidoAtual);
+
+            const descontoEl = document.getElementById('resumo-desconto');
+            if (descontoEl) descontoEl.textContent = descontoPedidoAtual > 0 ? '- ' + dinheiro(descontoPedidoAtual) : dinheiro(0);
+
+            document.getElementById('resumo-total').textContent = dinheiro(totalPedidoAtual);
+            document.getElementById('resumo-frete-msg').textContent = cupomAplicadoAtual
+                ? `Cupom ${cupomAplicadoAtual.codigo} aplicado • ${cupomAplicadoAtual.desconto}% OFF`
+                : calcularFrete(subtotalPedidoAtual).msg;
+        }
+
         function abrirModalEndereco(nome, preco, url) {
             urlCheckoutAtual = url;
-            produtoAtualNome = nome;
-            produtoAtualPreco = Number(String(preco).replace(',', '.')) || 0;
+            if (!itensPedidoAtual || itensPedidoAtual.length === 0) {
+                produtoAtualNome = nome;
+                produtoAtualPreco = Number(String(preco).replace(',', '.')) || 0;
+                subtotalPedidoAtual = produtoAtualPreco;
+                const frete = calcularFrete(subtotalPedidoAtual);
+                fretePedidoAtual = frete.valor;
+                totalPedidoAtual = subtotalPedidoAtual + fretePedidoAtual;
+            }
 
-            document.getElementById('modal-produto-nome').innerText = `${nome} - R$ ${preco}`;
+            document.getElementById('modal-produto-nome').innerText = `${produtoAtualNome} - Total: ${dinheiro(totalPedidoAtual)}`;
             document.getElementById('etapa-formulario').classList.remove('hidden');
             document.getElementById('etapa-sucesso').classList.add('hidden');
+            document.getElementById('step-dados').className = 'checkout-step bg-blue-600 text-white';
+            document.getElementById('step-pagamento').className = 'checkout-step bg-gray-800 text-gray-400 border border-gray-700';
+            document.getElementById('step-confirmacao').className = 'checkout-step bg-gray-800 text-gray-400 border border-gray-700';
 
             const areaPix = document.getElementById('area-pix');
             if (areaPix) areaPix.classList.add('hidden');
@@ -711,7 +1471,11 @@
             }
         }
 
-        function fecharModal() { document.getElementById('modal-compra').classList.add('hidden'); }
+        function fecharModal() {
+            document.getElementById('modal-compra').classList.add('hidden');
+            itensPedidoAtual = [];
+            enderecoPedidoAtual = null;
+        }
 
         async function confirmarEndereco(event) {
             event.preventDefault();
@@ -723,9 +1487,15 @@
                 return;
             }
 
+            atualizarResumoCompra();
+
             enderecoPedidoAtual = {
+                usuario_id: clienteLogado ? clienteLogado.id : null,
                 produto: produtoAtualNome,
-                valor: produtoAtualPreco,
+                itens: itensPedidoAtual,
+                valor: subtotalPedidoAtual,
+                frete: fretePedidoAtual,
+                total: totalPedidoAtual,
                 nome: document.getElementById('pedido-nome').value.trim(),
                 whatsapp: telefone,
                 cep: document.getElementById('cep').value.replace(/\D/g, ''),
@@ -736,38 +1506,39 @@
                 complemento: document.getElementById('pedido-complemento').value
             };
 
-            try {
-                const { error } = await db.from('pedidos').insert([{
-                    produto: enderecoPedidoAtual.produto,
-                    valor: enderecoPedidoAtual.valor,
-                    nome: enderecoPedidoAtual.nome,
-                    whatsapp: enderecoPedidoAtual.whatsapp,
-                    cep: enderecoPedidoAtual.cep,
-                    rua: enderecoPedidoAtual.rua,
-                    cidade: enderecoPedidoAtual.cidade,
-                    uf: enderecoPedidoAtual.uf,
-                    numero: enderecoPedidoAtual.numero,
-                    complemento: enderecoPedidoAtual.complemento,
-                    status: 'endereco_cadastrado'
-                }]);
-
-                if (error) console.warn('Pedido não salvo no banco:', error.message);
-            } catch (err) {
-                console.warn('Não foi possível salvar pedido no banco:', err);
-            }
-
             document.getElementById('etapa-formulario').classList.add('hidden');
             document.getElementById('etapa-sucesso').classList.remove('hidden');
+            atualizarResumoCompra();
 
             document.getElementById('step-dados').className = 'checkout-step bg-green-600 text-white';
             document.getElementById('step-pagamento').className = 'checkout-step bg-blue-600 text-white';
             document.getElementById('step-confirmacao').className = 'checkout-step bg-gray-800 text-gray-400 border border-gray-700';
         }
 
+
+        async function salvarPedidoFinalizado() {
+            if (!enderecoPedidoAtual) return;
+            const pedido = { usuario_id: clienteLogado ? clienteLogado.id : null, produto: itensPedidoAtual.map(i => `${i.quantidade}x ${i.nome}`).join(' | '), valor: subtotalPedidoAtual, frete: fretePedidoAtual, total: totalPedidoAtual, nome: enderecoPedidoAtual.nome, whatsapp: enderecoPedidoAtual.whatsapp, cep: enderecoPedidoAtual.cep, rua: enderecoPedidoAtual.rua, cidade: enderecoPedidoAtual.cidade, uf: enderecoPedidoAtual.uf, numero: enderecoPedidoAtual.numero, complemento: enderecoPedidoAtual.complemento, status: 'processando', cidade_atual: 'Pagamento gerado - aguardando confirmação' };
+            const { error } = await db.from('pedidos').insert([pedido]);
+            if (error) console.warn('Erro ao salvar pedido:', error.message);
+        }
+        async function baixarEstoquePedido() {
+            for (const item of itensPedidoAtual) {
+                if (!item.id) continue;
+                const produtoBanco = produtosCache.find(p => Number(p.id) === Number(item.id));
+                const estoqueAtual = Number(produtoBanco?.estoque || item.estoque || 0);
+                const novoEstoque = Math.max(0, estoqueAtual - Number(item.quantidade || 1));
+                const { error } = await db.from('produtos').update({ estoque: novoEstoque }).eq('id', item.id);
+                if (error) console.warn('Erro ao atualizar estoque:', error.message);
+            }
+            carrinho = [];
+            salvarCarrinhoLocal();
+            await renderizarVitrine();
+        }
         async function irParaPagamento() {
             const btn = document.getElementById('btn-gerar-pix');
 
-            if (!produtoAtualNome || !produtoAtualPreco) {
+            if (!produtoAtualNome || !totalPedidoAtual) {
                 alert('Erro: produto ou valor não encontrado.');
                 return;
             }
@@ -781,7 +1552,7 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         nome: produtoAtualNome,
-                        valor: produtoAtualPreco,
+                        valor: totalPedidoAtual,
                         descricao: `Pedido - ${produtoAtualNome}`,
                         cliente: enderecoPedidoAtual
                     })
@@ -817,6 +1588,10 @@
                     qrBox.innerHTML = `<p class="text-[10px] text-yellow-400 text-center">QR Code não retornado. Use o Pix copia e cola abaixo.</p>`;
                 }
 
+                await salvarPedidoFinalizado();
+
+                // Estoque NÃO baixa ao gerar Pix.
+                // Você baixa manualmente pelo painel ADM depois que confirmar o pagamento.
                 document.getElementById('area-pix').classList.remove('hidden');
                 document.getElementById('step-pagamento').className = 'checkout-step bg-green-600 text-white';
                 document.getElementById('step-confirmacao').className = 'checkout-step bg-blue-600 text-white';
