@@ -164,6 +164,16 @@
         }
 
         .settings-row:last-child { border-bottom: 0; }
+
+        #qr-pix-box img {
+            width: 210px !important;
+            height: 210px !important;
+            max-width: 80vw !important;
+            object-fit: contain !important;
+            border-radius: 18px;
+            background: white;
+            padding: 10px;
+        }
     </style>
 </head>
 <body class="bg-slate-950 text-gray-100 min-h-screen relative pt-[40px] flex flex-col justify-between">
@@ -493,65 +503,40 @@
                     </div>
                 </div>
 
-                <div id="area-pix" class="hidden mt-5 text-left">
-                    <div class="relative overflow-hidden rounded-3xl border border-green-500/30 bg-gradient-to-br from-green-950/70 via-gray-950 to-blue-950/50 p-4 shadow-2xl shadow-green-950/40">
-                        <div class="absolute -top-16 -right-16 w-36 h-36 rounded-full bg-green-500/10 blur-2xl"></div>
-                        <div class="absolute -bottom-16 -left-16 w-36 h-36 rounded-full bg-blue-500/10 blur-2xl"></div>
-
-                        <div class="relative text-center mb-4">
-                            <div class="w-16 h-16 rounded-full bg-green-500/10 border border-green-500/40 flex items-center justify-center mx-auto mb-3 shadow-lg shadow-green-950">
-                                <i class="fas fa-qrcode text-green-400 text-3xl"></i>
-                            </div>
-
-                            <div class="inline-flex items-center gap-1 bg-green-500/10 border border-green-500/30 text-green-400 rounded-full px-3 py-1 text-[10px] font-black mb-2">
-                                <i class="fas fa-lock"></i> Ambiente Seguro
-                            </div>
-
-                            <h4 class="text-2xl font-black text-green-400 leading-tight">Pix gerado com sucesso!</h4>
-                            <p class="text-[11px] text-gray-400 mt-1">Finalize seu pagamento de forma rápida e segura utilizando Pix.</p>
-                        </div>
-
-                        <div id="qr-pix-box" class="relative flex justify-center mb-4"></div>
-
-                        <div class="relative bg-gray-950/90 border border-gray-800 rounded-2xl p-3 mb-3">
-                            <div class="flex items-center justify-between mb-2">
-                                <label class="text-[10px] font-black text-gray-400 uppercase">Pix Copia e Cola</label>
-                                <span class="text-[9px] bg-blue-500/10 text-blue-300 border border-blue-500/30 rounded-full px-2 py-1 font-black">
-                                    Copie e pague
-                                </span>
-                            </div>
-
-                            <textarea id="pix-copia-cola" readonly rows="5" class="w-full bg-gray-900 border border-gray-800 rounded-xl p-3 text-[11px] text-green-300 resize-none leading-relaxed"></textarea>
-
-                            <button onclick="copiarPix()" class="w-full mt-3 bg-blue-600 hover:bg-blue-700 text-white font-black py-3.5 px-4 rounded-2xl transition-all flex items-center justify-center gap-2 cursor-pointer text-sm shadow-lg shadow-blue-950">
-                                <i class="fas fa-copy"></i> Copiar Pix
+                <div id="area-pix" class="hidden fixed inset-0 z-[100] bg-black/90 backdrop-blur-md p-4 overflow-y-auto">
+                    <div class="min-h-full flex items-center justify-center">
+                        <div class="w-full max-w-md bg-gray-950 border border-green-500/40 rounded-3xl p-5 text-center shadow-2xl shadow-green-950/50 relative">
+                            <button onclick="fecharTelaPix()" class="absolute top-4 right-4 text-gray-500 hover:text-white text-xl">
+                                <i class="fas fa-times"></i>
                             </button>
-                        </div>
 
-                        <div class="grid grid-cols-3 gap-2 mb-3">
-                            <div class="bg-gray-950/70 border border-gray-800 rounded-2xl p-2 text-center">
-                                <i class="fas fa-mobile-screen text-blue-400"></i>
-                                <p class="text-[9px] text-gray-300 font-bold mt-1">Abra seu banco</p>
+                            <div class="w-14 h-14 rounded-full bg-green-500/10 border border-green-500/40 flex items-center justify-center mx-auto mb-3">
+                                <i class="fab fa-pix text-green-400 text-3xl"></i>
                             </div>
-                            <div class="bg-gray-950/70 border border-gray-800 rounded-2xl p-2 text-center">
-                                <i class="fas fa-copy text-green-400"></i>
-                                <p class="text-[9px] text-gray-300 font-bold mt-1">Cole o Pix</p>
-                            </div>
-                            <div class="bg-gray-950/70 border border-gray-800 rounded-2xl p-2 text-center">
-                                <i class="fas fa-circle-check text-yellow-400"></i>
-                                <p class="text-[9px] text-gray-300 font-bold mt-1">Confirme</p>
-                            </div>
-                        </div>
 
-                        <div class="bg-gray-950/80 border border-gray-800 rounded-2xl p-3">
-                            <h4 class="text-white font-black text-xs mb-2">
-                                <i class="fas fa-list-check text-blue-400"></i> Após o pagamento
-                            </h4>
-                            <div class="space-y-1.5 text-[10px] text-gray-300">
-                                <p><i class="fas fa-circle-check text-green-400"></i> Seu pagamento será conferido com segurança.</p>
-                                <p><i class="fas fa-box-open text-blue-400"></i> Seu pedido entra em preparação para envio.</p>
-                                <p><i class="fab fa-whatsapp text-green-400"></i> Você receberá o rastreio pelo WhatsApp.</p>
+                            <h4 class="text-green-400 font-black text-2xl mb-1">Pague com Pix</h4>
+                            <p class="text-[11px] text-gray-400 mb-4">
+                                Escaneie o QR Code ou copie o código Pix abaixo.
+                            </p>
+
+                            <div id="qr-pix-box" class="flex justify-center mb-4"></div>
+
+                            <div class="bg-gray-900 border border-gray-800 rounded-2xl p-3 text-left">
+                                <div class="flex items-center justify-between mb-2">
+                                    <label class="text-[10px] font-black text-gray-400 uppercase">Pix Copia e Cola</label>
+                                    <span class="text-[9px] bg-green-500/10 text-green-300 border border-green-500/30 rounded-full px-2 py-1 font-black">Seguro</span>
+                                </div>
+
+                                <textarea id="pix-copia-cola" readonly rows="5" class="w-full bg-gray-950 border border-gray-800 rounded-xl p-3 text-[11px] text-green-300 resize-none leading-relaxed"></textarea>
+
+                                <button onclick="copiarPix()" class="w-full mt-3 bg-blue-600 hover:bg-blue-700 text-white font-black py-3.5 px-4 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer text-sm">
+                                    <i class="fas fa-copy"></i> Copiar Pix
+                                </button>
                             </div>
+
+                            <p class="text-[10px] text-gray-500 mt-3">
+                                Após pagar, envie o comprovante no suporte se necessário.
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -1622,9 +1607,7 @@
                 // Estoque NÃO baixa ao gerar Pix.
                 // Você baixa manualmente pelo painel ADM depois que confirmar o pagamento.
                 document.getElementById('area-pix').classList.remove('hidden');
-                setTimeout(() => {
-                    document.getElementById('area-pix')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }, 150);
+                document.body.style.overflow = 'hidden';
                 document.getElementById('step-pagamento').className = 'checkout-step bg-green-600 text-white';
                 document.getElementById('step-confirmacao').className = 'checkout-step bg-blue-600 text-white';
                 btn.innerHTML = `<i class="fas fa-check"></i> Pix Gerado`;
