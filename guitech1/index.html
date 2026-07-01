@@ -529,7 +529,7 @@
 
                                 <textarea id="pix-copia-cola" readonly rows="5" class="w-full bg-gray-950 border border-gray-800 rounded-xl p-3 text-[11px] text-green-300 resize-none leading-relaxed"></textarea>
 
-                                <button onclick="copiarPix()" class="w-full mt-3 bg-blue-600 hover:bg-blue-700 text-white font-black py-3.5 px-4 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer text-sm">
+                                <button id="btn-copiar-pix" onclick="copiarPix()" class="w-full mt-3 bg-blue-600 hover:bg-blue-700 text-white font-black py-3.5 px-4 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer text-sm">
                                     <i class="fas fa-copy"></i> Copiar Pix
                                 </button>
                             </div>
@@ -1087,6 +1087,1260 @@
             if (modal) modal.classList.add('hidden');
         }
 
+        function produtoParaItem(item) { const precoFinal = item.preco_promocional && Number(item.preco_promocional) > 0 ? Number(item.preco_promocional) : Number(item.preco || 0); return { id: item.id, nome: item.nome, preco: Number(item.preco || 0), preco_final: precoFinal, imagem_url: item.imagem_url, estoque: Number(item.estoque || 0), quantidade: 1 }; }
+        function adicionarAoCarrinho(item) { const novo = produtoParaItem(item); const existente = carrinho.find(p => Number(p.id) === Number(novo.id)); if (existente) { if (existente.quantidade >= novo.estoque) return alert('Quantidade máxima em estoque já adicionada.'); existente.quantidade += 1; } else carrinho.push(novo); salvarCarrinhoLocal(); alert('Produto adicionado ao carrinho!'); }
+        function comprarAgoraProduto(item) { const novo = produtoParaItem(item); prepararPedido([novo]); abrirModalEndereco(produtoAtualNome, totalPedidoAtual.toFixed(2), item.link_pagamento || '#'); }
+        function abrirCarrinho() {
+            renderizarCarrinho();
+            document.getElementById('modal-carrinho').classList.remove('hidden');
+            setTimeout(() => {
+                if (typeof carregarCuponsNoCarrinho === 'function') carregarCuponsNoCarrinho();
+            }, 100);
+        }
+
+        function fecharCarrinho() { document.getElementById('modal-carrinho').classList.add('hidden'); }
+        function alterarQuantidadeCarrinho(id, delta) { const item = carrinho.find(p => Number(p.id) === Number(id)); if (!item) return; const novaQtd = Number(item.quantidade || 1) + delta; if (novaQtd <= 0) carrinho = carrinho.filter(p => Number(p.id) !== Number(id)); else if (novaQtd > Number(item.estoque || 0)) alert('Não há mais estoque disponível para este produto.'); else item.quantidade = novaQtd; salvarCarrinhoLocal(); renderizarCarrinho(); }
+        function removerDoCarrinho(id) { carrinho = carrinho.filter(p => Number(p.id) !== Number(id)); salvarCarrinhoLocal(); renderizarCarrinho(); }
+        function renderizarCarrinho() {
+            const lista = document.getElementById('lista-carrinho');
+            if (!lista) return;
+
+            if (carrinho.length === 0) {
+                lista.innerHTML = `<p class="text-sm text-gray-400 text-center py-6">Seu carrinho está vazio.</p>`;
+                document.getElementById('cart-subtotal').textContent = dinheiro(0);
+                document.getElementById('cart-frete').textContent = dinheiro(0);
+                const descontoEl = document.getElementById('cart-desconto');
+                if (descontoEl) descontoEl.textContent = dinheiro(0);
+                document.getElementById('cart-total').textContent = dinheiro(0);
+                document.getElementById('cart-frete-msg').textContent = '';
+                return;
+            }
+
+            lista.innerHTML = carrinho.map(item => `
+                <div class="bg-gray-950 border border-gray-800 rounded-xl p-3 flex gap-3">
+                    <img src="${item.imagem_url || ''}" class="w-14 h-14 rounded-lg object-cover bg-gray-800">
+                    <div class="flex-1">
+                        <h4 class="text-sm font-black text-white">${item.nome}</h4>
+                        <p class="text-xs text-green-400 font-bold">${dinheiro(item.preco_final)}</p>
+                        <div class="flex items-center gap-2 mt-2">
+                            <button onclick="alterarQuantidadeCarrinho(${item.id}, -1)" class="bg-gray-800 px-2 rounded">-</button>
+                            <span class="text-xs font-bold">${item.quantidade}</span>
+                            <button onclick="alterarQuantidadeCarrinho(${item.id}, 1)" class="bg-gray-800 px-2 rounded">+</button>
+                            <button onclick="removerDoCarrinho(${item.id})" class="ml-auto text-red-400 text-xs"><i class="fas fa-trash"></i></button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            subtotalPedidoAtual = carrinho.reduce((acc, item) => acc + (Number(item.preco_final || 0) * Number(item.quantidade || 1)), 0);
+            recalcularTotalComCupom();
+
+            document.getElementById('cart-subtotal').textContent = dinheiro(subtotalPedidoAtual);
+            document.getElementById('cart-frete').textContent = fretePedidoAtual === 0 ? 'Grátis 🎉' : dinheiro(fretePedidoAtual);
+            const descontoEl = document.getElementById('cart-desconto');
+            if (descontoEl) descontoEl.textContent = descontoPedidoAtual > 0 ? '- ' + dinheiro(descontoPedidoAtual) : dinheiro(0);
+            document.getElementById('cart-total').textContent = dinheiro(totalPedidoAtual);
+            document.getElementById('cart-frete-msg').textContent = cupomAplicadoAtual ? `Cupom ${cupomAplicadoAtual.codigo} aplicado` : '';
+        }
+
+        function finalizarCarrinho() {
+            if (carrinho.length === 0) return alert('Seu carrinho está vazio.');
+            prepararPedido(carrinho);
+            fecharCarrinho();
+            abrirModalEndereco(produtoAtualNome, totalPedidoAtual.toFixed(2), '#');
+        }
+
+        function abrirAreaCliente() { atualizarInterfaceCliente(); document.getElementById('modal-conta').classList.remove('hidden'); }
+        function fecharAreaCliente() { document.getElementById('modal-conta').classList.add('hidden'); }
+        function mostrarLoginCliente() { document.getElementById('form-login-cliente').classList.remove('hidden'); document.getElementById('form-cadastro-cliente').classList.add('hidden'); }
+        function mostrarCadastroCliente() { document.getElementById('form-login-cliente').classList.add('hidden'); document.getElementById('form-cadastro-cliente').classList.remove('hidden'); }
+        function abrirCadastroClienteRapido() { abrirAreaCliente(); mostrarCadastroCliente(); }
+        function atualizarInterfaceCliente() { const loginArea = document.getElementById('conta-login-area'); const logadaArea = document.getElementById('conta-logada-area'); if (!loginArea || !logadaArea) return; if (clienteLogado) { loginArea.classList.add('hidden'); logadaArea.classList.remove('hidden'); document.getElementById('cliente-nome').textContent = clienteLogado.nome_completo || clienteLogado.usuario || 'Cliente'; document.getElementById('cliente-usuario').textContent = '@' + clienteLogado.usuario; document.getElementById('cliente-whatsapp').textContent = 'WhatsApp: ' + (clienteLogado.whatsapp || ''); document.getElementById('cliente-foto').src = clienteLogado.foto_perfil || `https://ui-avatars.com/api/?name=${encodeURIComponent(clienteLogado.usuario)}&background=2563eb&color=fff`; carregarResumoPedidosCliente(); carregarCuponsCliente(); carregarPedidosCliente('processando'); } else { loginArea.classList.remove('hidden'); logadaArea.classList.add('hidden'); } }
+        async function criarContaCliente(event) { event.preventDefault(); const nomeCompleto = document.getElementById('cad-nome-completo').value.trim(); const email = document.getElementById('cad-email').value.trim().toLowerCase(); const usuario = document.getElementById('cad-usuario').value.trim().toLowerCase().replace('@', ''); const whatsapp = document.getElementById('cad-whatsapp').value.replace(/\D/g, ''); const senha = document.getElementById('cad-senha').value; const senha2 = document.getElementById('cad-senha2').value; const foto = document.getElementById('cad-foto').value.trim() || null; if (usuario.length < 4) return alert('O nome de usuário precisa ter pelo menos 4 caracteres.'); if (senha !== senha2) return alert('As senhas estão diferentes.'); if (!(whatsapp.length === 10 || whatsapp.length === 11)) return alert('Digite um WhatsApp completo com DDD.'); const { data: existe } = await db.from('usuarios_loja').select('id').eq('usuario', usuario).maybeSingle(); if (existe) return alert('Esse nome de usuário já está em uso.'); const payload = { usuario, senha, whatsapp, foto_perfil: foto, primeira_compra: false, nome_completo: nomeCompleto, email }; const { data, error } = await db.from('usuarios_loja').insert([payload]).select().single(); if (error) return alert('Erro ao criar conta: ' + error.message); clienteLogado = data; localStorage.setItem('cliente_guitech', JSON.stringify(clienteLogado)); if (enderecoPedidoAtual) enderecoPedidoAtual.usuario_id = clienteLogado.id; alert('Conta criada com sucesso!'); fecharAreaCliente(); atualizarResumoCompra(); }
+        async function loginCliente(event) { event.preventDefault(); const usuario = document.getElementById('login-usuario-cliente').value.trim().toLowerCase().replace('@', ''); const senha = document.getElementById('login-senha-cliente').value; const { data, error } = await db.from('usuarios_loja').select('*').eq('usuario', usuario).eq('senha', senha).maybeSingle(); if (error || !data) return alert('Usuário ou senha incorretos.'); clienteLogado = data; localStorage.setItem('cliente_guitech', JSON.stringify(clienteLogado)); if (enderecoPedidoAtual) enderecoPedidoAtual.usuario_id = clienteLogado.id; alert('Login realizado!'); atualizarInterfaceCliente(); atualizarResumoCompra(); }
+        function sairCliente() { clienteLogado = null; localStorage.removeItem('cliente_guitech'); atualizarInterfaceCliente(); atualizarResumoCompra(); }
+        async function carregarResumoPedidosCliente() { if (!clienteLogado) return; for (const st of ['processando','enviado','finalizado','devolucao']) { const { count } = await db.from('pedidos').select('id', { count: 'exact', head: true }).eq('usuario_id', clienteLogado.id).eq('status', st); const el = document.getElementById('qtd-' + st); if (el) el.textContent = count || 0; } }
+        async function carregarCuponsCliente() { const box = document.getElementById('cliente-cupons'); if (!box || !clienteLogado) return; const { data } = await db.from('cupons').select('*').eq('usuario_id', clienteLogado.id).eq('ativo', true); if (!data || data.length === 0) { box.innerHTML = 'Nenhum cupom disponível no momento.'; return; } box.innerHTML = data.map(c => `<div class="bg-yellow-500/10 border border-yellow-500/30 text-yellow-300 rounded-xl p-2 mb-2 font-bold">${c.codigo} - ${c.desconto}% OFF</div>`).join(''); }
+        async function carregarPedidosCliente(status) { const box = document.getElementById('cliente-pedidos'); if (!box || !clienteLogado) return; box.innerHTML = 'Carregando...'; const { data } = await db.from('pedidos').select('*').eq('usuario_id', clienteLogado.id).eq('status', status).order('criado_em', { ascending: false }); if (!data || data.length === 0) { box.innerHTML = 'Nenhum pedido nessa categoria.'; return; } box.innerHTML = data.map(p => `<div class="bg-gray-900 border border-gray-800 rounded-xl p-3 mb-2"><div class="font-black text-white">${p.produto || 'Pedido'}</div><div class="text-green-400 font-bold">${dinheiro(p.total || p.valor)}</div><div class="text-gray-400">Status: ${p.status}</div><div class="text-gray-400">Local: ${p.cidade_atual || 'Aguardando atualização'}</div><div class="text-gray-400">Rastreio: ${p.rastreio || 'Ainda não informado'}</div></div>`).join(''); }
+        function abrirModalEditarPerfil(tipo) {
+            if (!clienteLogado) return;
+
+            const modal = document.getElementById('modal-editar-perfil');
+            const titulo = document.getElementById('editar-perfil-titulo');
+            const desc = document.getElementById('editar-perfil-descricao');
+            const tipoInput = document.getElementById('editar-perfil-tipo');
+            const label1 = document.getElementById('editar-label-1');
+            const valor1 = document.getElementById('editar-valor-1');
+            const campo2 = document.getElementById('editar-campo-confirmar');
+            const label2 = document.getElementById('editar-label-2');
+            const valor2 = document.getElementById('editar-valor-2');
+
+            tipoInput.value = tipo;
+            valor1.value = '';
+            valor2.value = '';
+            campo2.classList.add('hidden');
+            valor1.type = 'text';
+            valor2.type = 'text';
+
+            if (tipo === 'foto') {
+                titulo.innerHTML = '<i class="fas fa-image text-blue-400"></i> Alterar Foto';
+                desc.textContent = 'Cole o link da nova foto de perfil.';
+                label1.textContent = 'Link da nova foto';
+                valor1.placeholder = 'https://exemplo.com/foto.jpg';
+                valor1.value = clienteLogado.foto_perfil || '';
+            }
+
+            if (tipo === 'usuario') {
+                titulo.innerHTML = '<i class="fas fa-user text-green-400"></i> Alterar Usuário';
+                desc.textContent = 'Escolha um novo nome de usuário.';
+                label1.textContent = 'Novo usuário';
+                valor1.placeholder = '@novo_usuario';
+                valor1.value = clienteLogado.usuario || '';
+            }
+
+            if (tipo === 'senha') {
+                titulo.innerHTML = '<i class="fas fa-lock text-yellow-400"></i> Alterar Senha';
+                desc.textContent = 'Digite a nova senha e confirme para evitar erro.';
+                label1.textContent = 'Nova senha';
+                label2.textContent = 'Confirmar nova senha';
+                valor1.placeholder = 'Digite a nova senha';
+                valor2.placeholder = 'Repita a nova senha';
+                valor1.type = 'password';
+                valor2.type = 'password';
+                campo2.classList.remove('hidden');
+            }
+
+            if (tipo === 'whatsapp') {
+                titulo.innerHTML = '<i class="fab fa-whatsapp text-green-400"></i> Alterar WhatsApp';
+                desc.textContent = 'Digite o novo WhatsApp com DDD.';
+                label1.textContent = 'Novo WhatsApp';
+                valor1.placeholder = '(00) 90000-0000';
+                valor1.value = clienteLogado.whatsapp || '';
+            }
+
+            modal.classList.remove('hidden');
+        }
+
+        function fecharModalEditarPerfil() {
+            document.getElementById('modal-editar-perfil').classList.add('hidden');
+        }
+
+        async function salvarEdicaoPerfil(event) {
+            event.preventDefault();
+            if (!clienteLogado) return;
+
+            const tipo = document.getElementById('editar-perfil-tipo').value;
+            let valor1 = document.getElementById('editar-valor-1').value.trim();
+            let valor2 = document.getElementById('editar-valor-2').value.trim();
+
+            let update = {};
+
+            if (tipo === 'foto') {
+                if (!valor1) return alert('Cole o link da foto.');
+                update = { foto_perfil: valor1 };
+            }
+
+            if (tipo === 'usuario') {
+                const usuario = valor1.toLowerCase().replace('@', '');
+                if (usuario.length < 4) return alert('Usuário precisa ter pelo menos 4 caracteres.');
+
+                const { data: existe } = await db.from('usuarios_loja').select('id').eq('usuario', usuario).maybeSingle();
+                if (existe && existe.id !== clienteLogado.id) return alert('Esse usuário já está em uso.');
+
+                update = { usuario };
+            }
+
+            if (tipo === 'senha') {
+                if (valor1.length < 4) return alert('Senha muito curta.');
+                if (valor1 !== valor2) return alert('As senhas estão diferentes.');
+                update = { senha: valor1 };
+            }
+
+            if (tipo === 'whatsapp') {
+                const whatsapp = valor1.replace(/\D/g, '');
+                if (!(whatsapp.length === 10 || whatsapp.length === 11)) return alert('WhatsApp inválido. Digite com DDD.');
+                update = { whatsapp };
+            }
+
+            const { error } = await db.from('usuarios_loja').update(update).eq('id', clienteLogado.id);
+
+            if (error) {
+                alert('Erro ao atualizar: ' + error.message);
+                return;
+            }
+
+            clienteLogado = { ...clienteLogado, ...update };
+            localStorage.setItem('cliente_guitech', JSON.stringify(clienteLogado));
+            atualizarInterfaceCliente();
+            fecharModalEditarPerfil();
+            if (typeof mostrarToast === 'function') mostrarToast('Dados atualizados com sucesso!');
+            else alert('Dados atualizados com sucesso!');
+        }
+
+        function alterarFotoCliente() { abrirModalEditarPerfil('foto'); }
+        function alterarUsuarioCliente() { abrirModalEditarPerfil('usuario'); }
+        function alterarSenhaCliente() { abrirModalEditarPerfil('senha'); }
+        function alterarWhatsappCliente() { abrirModalEditarPerfil('whatsapp'); }
+
+        function abrirRecuperacaoConta() { document.getElementById('modal-recuperacao').classList.remove('hidden'); }
+        function fecharRecuperacaoConta() { document.getElementById('modal-recuperacao').classList.add('hidden'); }
+        async function solicitarRecuperacao(event) { event.preventDefault(); const dados = { tipo: 'Recuperação de conta', mensagem: document.getElementById('rec-motivo').value, nome: document.getElementById('rec-nome').value.trim(), telefone: document.getElementById('rec-whatsapp').value.replace(/\D/g, ''), instagram: document.getElementById('rec-email').value.trim() }; const { error } = await db.from('solicitacoes').insert([dados]); if (error) return alert('Erro ao solicitar atendimento: ' + error.message); alert('Solicitação enviada! Nossa equipe entrará em contato.'); event.target.reset(); fecharRecuperacaoConta(); }
+        function atualizarResumoCompra() {
+            const subtotalEl = document.getElementById('resumo-subtotal');
+            if (!subtotalEl) return;
+
+            recalcularTotalComCupom();
+
+            document.getElementById('resumo-subtotal').textContent = dinheiro(subtotalPedidoAtual);
+            document.getElementById('resumo-frete').textContent = fretePedidoAtual === 0 ? 'Grátis 🎉' : dinheiro(fretePedidoAtual);
+
+            const descontoEl = document.getElementById('resumo-desconto');
+            if (descontoEl) descontoEl.textContent = descontoPedidoAtual > 0 ? '- ' + dinheiro(descontoPedidoAtual) : dinheiro(0);
+
+            document.getElementById('resumo-total').textContent = dinheiro(totalPedidoAtual);
+            document.getElementById('resumo-frete-msg').textContent = cupomAplicadoAtual
+                ? `Cupom ${cupomAplicadoAtual.codigo} aplicado • ${cupomAplicadoAtual.desconto}% OFF`
+                : calcularFrete(subtotalPedidoAtual).msg;
+        }
+
+        function abrirModalEndereco(nome, preco, url) {
+            urlCheckoutAtual = url;
+            if (!itensPedidoAtual || itensPedidoAtual.length === 0) {
+                produtoAtualNome = nome;
+                produtoAtualPreco = Number(String(preco).replace(',', '.')) || 0;
+                subtotalPedidoAtual = produtoAtualPreco;
+                const frete = calcularFrete(subtotalPedidoAtual);
+                fretePedidoAtual = frete.valor;
+                totalPedidoAtual = subtotalPedidoAtual + fretePedidoAtual;
+            }
+
+            document.getElementById('modal-produto-nome').innerText = `${produtoAtualNome} - Total: ${dinheiro(totalPedidoAtual)}`;
+            document.getElementById('etapa-formulario').classList.remove('hidden');
+            document.getElementById('etapa-sucesso').classList.add('hidden');
+            document.getElementById('step-dados').className = 'checkout-step bg-blue-600 text-white';
+            document.getElementById('step-pagamento').className = 'checkout-step bg-gray-800 text-gray-400 border border-gray-700';
+            document.getElementById('step-confirmacao').className = 'checkout-step bg-gray-800 text-gray-400 border border-gray-700';
+
+            const areaPix = document.getElementById('area-pix');
+            if (areaPix) areaPix.classList.add('hidden');
+
+            const pixTextarea = document.getElementById('pix-copia-cola');
+            if (pixTextarea) pixTextarea.value = '';
+
+            const qrBox = document.getElementById('qr-pix-box');
+            if (qrBox) qrBox.innerHTML = '';
+
+            const btnPix = document.getElementById('btn-gerar-pix');
+            if (btnPix) {
+                btnPix.disabled = false;
+                btnPix.innerHTML = `<i class="fas fa-qrcode"></i> Gerar Pix Copia e Cola`;
+            }
+
+            document.getElementById('modal-compra').classList.remove('hidden');
+        }
+
+        
+
+
+        function abrirModalSolicitacao() {
+            document.getElementById('modal-solicitacao').classList.remove('hidden');
+        }
+
+        function fecharModalSolicitacao() {
+            document.getElementById('modal-solicitacao').classList.add('hidden');
+        }
+
+        function limparInstagram(valor) {
+            let ig = (valor || '').trim();
+            if (!ig.startsWith('@')) ig = '@' + ig;
+            return ig;
+        }
+
+        async function enviarSolicitacao(event) {
+            event.preventDefault();
+
+            const btn = document.getElementById('btn-solicitacao');
+            const telefone = document.getElementById('sol-telefone').value.replace(/\D/g, '');
+            const instagram = limparInstagram(document.getElementById('sol-instagram').value);
+
+            if (!(telefone.length === 10 || telefone.length === 11)) {
+                alert('Digite um WhatsApp completo com DDD. Ex: (89) 99999-9999');
+                return;
+            }
+
+            if (instagram.length < 3 || instagram === '@') {
+                alert('Digite um Instagram válido.');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fas fa-spinner animate-spin"></i> Enviando...`;
+
+            try {
+                const solicitacao = {
+                    tipo: document.getElementById('sol-tipo').value,
+                    mensagem: document.getElementById('sol-mensagem').value,
+                    nome: document.getElementById('sol-nome').value || null,
+                    telefone: telefone,
+                    instagram: instagram
+                };
+
+                const { error } = await db.from('solicitacoes').insert([solicitacao]);
+
+                if (error) throw error;
+
+                alert('Solicitação enviada com sucesso!');
+                event.target.reset();
+                fecharModalSolicitacao();
+
+            } catch (err) {
+                alert('Erro ao enviar solicitação: ' + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = `<i class="fas fa-paper-plane"></i> Enviar solicitação`;
+            }
+        }
+
+        function fecharModal() {
+            document.getElementById('modal-compra').classList.add('hidden');
+            itensPedidoAtual = [];
+            enderecoPedidoAtual = null;
+        }
+
+        async function confirmarEndereco(event) {
+            event.preventDefault();
+
+            const telefone = document.getElementById('pedido-whatsapp').value.replace(/\D/g, '');
+
+            if (!(telefone.length === 10 || telefone.length === 11)) {
+                alert('Digite um WhatsApp completo com DDD. Ex: (89) 99999-9999');
+                return;
+            }
+
+            atualizarResumoCompra();
+
+            enderecoPedidoAtual = {
+                usuario_id: clienteLogado ? clienteLogado.id : null,
+                produto: produtoAtualNome,
+                itens: itensPedidoAtual,
+                valor: subtotalPedidoAtual,
+                frete: fretePedidoAtual,
+                total: totalPedidoAtual,
+                nome: document.getElementById('pedido-nome').value.trim(),
+                whatsapp: telefone,
+                cep: document.getElementById('cep').value.replace(/\D/g, ''),
+                rua: document.getElementById('rua').value.trim(),
+                cidade: document.getElementById('cidade').value.trim(),
+                uf: document.getElementById('uf').value.trim().toUpperCase(),
+                numero: document.getElementById('pedido-numero').value.trim(),
+                complemento: document.getElementById('pedido-complemento').value
+            };
+
+            document.getElementById('etapa-formulario').classList.add('hidden');
+            document.getElementById('etapa-sucesso').classList.remove('hidden');
+            atualizarResumoCompra();
+
+            document.getElementById('step-dados').className = 'checkout-step bg-green-600 text-white';
+            document.getElementById('step-pagamento').className = 'checkout-step bg-blue-600 text-white';
+            document.getElementById('step-confirmacao').className = 'checkout-step bg-gray-800 text-gray-400 border border-gray-700';
+        }
+
+
+        async function salvarPedidoFinalizado() {
+            if (!enderecoPedidoAtual) return;
+            const pedido = { usuario_id: clienteLogado ? clienteLogado.id : null, produto: itensPedidoAtual.map(i => `${i.quantidade}x ${i.nome}`).join(' | '), valor: subtotalPedidoAtual, frete: fretePedidoAtual, total: totalPedidoAtual, nome: enderecoPedidoAtual.nome, whatsapp: enderecoPedidoAtual.whatsapp, cep: enderecoPedidoAtual.cep, rua: enderecoPedidoAtual.rua, cidade: enderecoPedidoAtual.cidade, uf: enderecoPedidoAtual.uf, numero: enderecoPedidoAtual.numero, complemento: enderecoPedidoAtual.complemento, status: 'processando', cidade_atual: 'Pagamento gerado - aguardando confirmação' };
+            const { error } = await db.from('pedidos').insert([pedido]);
+            if (error) console.warn('Erro ao salvar pedido:', error.message);
+        }
+        async function baixarEstoquePedido() {
+            for (const item of itensPedidoAtual) {
+                if (!item.id) continue;
+                const produtoBanco = produtosCache.find(p => Number(p.id) === Number(item.id));
+                const estoqueAtual = Number(produtoBanco?.estoque || item.estoque || 0);
+                const novoEstoque = Math.max(0, estoqueAtual - Number(item.quantidade || 1));
+                const { error } = await db.from('produtos').update({ estoque: novoEstoque }).eq('id', item.id);
+                if (error) console.warn('Erro ao atualizar estoque:', error.message);
+            }
+            carrinho = [];
+            salvarCarrinhoLocal();
+            await renderizarVitrine();
+        }
+        async function irParaPagamento() {
+            const btn = document.getElementById('btn-gerar-pix');
+
+            if (!produtoAtualNome || !totalPedidoAtual) {
+                alert('Erro: produto ou valor não encontrado.');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fas fa-spinner animate-spin"></i> Gerando Pix...`;
+
+            try {
+                const resposta = await fetch('/.netlify/functions/criar-pix', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        nome: produtoAtualNome,
+                        valor: totalPedidoAtual,
+                        descricao: `Pedido - ${produtoAtualNome}`,
+                        cliente: enderecoPedidoAtual
+                    })
+                });
+
+                const dados = await resposta.json();
+
+                if (!resposta.ok) {
+                    throw new Error(dados.error || dados.message || 'Erro ao gerar Pix.');
+                }
+
+                const pixCopiaCola = dados.pix_copia_cola || dados.pixCopiaCola || dados.copy_paste || dados.qr_code_text || dados.payload;
+                const qrBase64 = dados.qr_code_base64 || dados.qrCodeBase64 || dados.qrcode_base64 || dados.qr_code || dados.qrcode;
+
+                if (!pixCopiaCola) {
+                    throw new Error('A API não retornou Pix copia e cola.');
+                }
+
+                document.getElementById('pix-copia-cola').value = pixCopiaCola;
+
+                const qrBox = document.getElementById('qr-pix-box');
+                qrBox.innerHTML = '';
+
+                if (qrBase64) {
+                    const img = document.createElement('img');
+                    img.alt = 'QR Code Pix';
+                    img.className = 'w-44 h-44 rounded-xl bg-white p-2 mx-auto';
+                    img.src = String(qrBase64).startsWith('data:image')
+                        ? qrBase64
+                        : `data:image/png;base64,${qrBase64}`;
+                    qrBox.appendChild(img);
+                } else {
+                    qrBox.innerHTML = `<p class="text-[10px] text-yellow-400 text-center">QR Code não retornado. Use o Pix copia e cola abaixo.</p>`;
+                }
+
+                await salvarPedidoFinalizado();
+
+                // Estoque NÃO baixa ao gerar Pix.
+                // Você baixa manualmente pelo painel ADM depois que confirmar o pagamento.
+                document.getElementById('area-pix').classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+                document.getElementById('step-pagamento').className = 'checkout-step bg-green-600 text-white';
+                document.getElementById('step-confirmacao').className = 'checkout-step bg-blue-600 text-white';
+                btn.innerHTML = `<i class="fas fa-check"></i> Pix Gerado`;
+
+            } catch (err) {
+                alert('Erro ao gerar Pix: ' + err.message);
+                btn.disabled = false;
+                btn.innerHTML = `<i class="fas fa-qrcode"></i> Gerar Pix Copia e Cola`;
+            }
+        }
+
+        async function copiarPix() {
+            const texto = document.getElementById('pix-copia-cola').value;
+            if (!texto) {
+                alert('Nenhum Pix gerado ainda.');
+                return;
+            }
+
+            try {
+                await navigator.clipboard.writeText(texto);
+                alert('Pix copiado com sucesso!');
+            } catch (e) {
+                const campo = document.getElementById('pix-copia-cola');
+                campo.select();
+                document.execCommand('copy');
+                alert('Pix copiado!');
+            }
+        }
+    </script>
+</body>
+</html><!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Loja Oficial - Eletrônicos & Som Automotivo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Poppins:wght@600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        #mobile-menu { transition: all 0.3s ease-in-out; }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: radial-gradient(circle at top, rgba(37, 99, 235, 0.12), transparent 35%), #020617;
+        }
+
+        h1, h2, h3, .font-display {
+            font-family: 'Poppins', 'Inter', sans-serif;
+        }
+
+        .glass-card {
+            background: rgba(15, 23, 42, 0.72);
+            border: 1px solid rgba(148, 163, 184, 0.14);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            box-shadow: 0 20px 45px rgba(0, 0, 0, 0.35);
+        }
+
+        .btn-comprar-pulse {
+            animation: pulseComprar 2.6s infinite;
+        }
+
+        @keyframes pulseComprar {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 0 rgba(59, 130, 246, 0); }
+            50% { transform: scale(1.04); box-shadow: 0 0 22px rgba(59, 130, 246, 0.38); }
+        }
+
+        .btn-comprar-pulse:hover {
+            transform: scale(1.06);
+            box-shadow: 0 0 28px rgba(59, 130, 246, 0.55);
+        }
+
+        .produto-card {
+            transition: transform 0.3s ease-in-out, border-color 0.3s ease-in-out, box-shadow 0.3s ease-in-out, background 0.3s ease-in-out;
+        }
+
+        .produto-card:hover {
+            transform: translateY(-6px) scale(1.015);
+            border-color: rgba(59, 130, 246, 0.55);
+            box-shadow: 0 24px 55px rgba(37, 99, 235, 0.22);
+        }
+
+        .produto-img-wrap::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(120deg, transparent, rgba(255,255,255,0.08), transparent);
+            transform: translateX(-120%);
+            transition: transform 0.7s ease;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        .produto-card:hover .produto-img-wrap::before {
+            transform: translateX(120%);
+        }
+
+        .modal-card-modern {
+            border-radius: 24px;
+            box-shadow: 0 32px 90px rgba(0, 0, 0, 0.58), 0 0 35px rgba(59, 130, 246, 0.10);
+            animation: floatCard 4.5s ease-in-out infinite;
+        }
+
+        @keyframes floatCard {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-6px); }
+        }
+
+        .checkout-step {
+            width: 28px;
+            height: 28px;
+            border-radius: 999px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 900;
+        }
+
+        .checkout-line {
+            height: 2px;
+            flex: 1;
+            background: linear-gradient(90deg, rgba(59,130,246,.9), rgba(16,185,129,.55));
+        }
+
+        .cart-badge {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            min-width: 19px;
+            height: 19px;
+            border-radius: 999px;
+            background: #ef4444;
+            color: #fff;
+            font-size: 10px;
+            font-weight: 900;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid #020617;
+        }
+
+        .account-panel {
+            background:
+                radial-gradient(circle at top left, rgba(59,130,246,.26), transparent 34%),
+                radial-gradient(circle at bottom right, rgba(16,185,129,.16), transparent 30%),
+                linear-gradient(180deg, rgba(15,23,42,.98), rgba(2,6,23,.98));
+        }
+
+        .account-box {
+            background: rgba(15, 23, 42, .86);
+            border: 1px solid rgba(148, 163, 184, .16);
+            box-shadow: 0 16px 35px rgba(0,0,0,.32);
+        }
+
+        .account-stat {
+            background: linear-gradient(135deg, rgba(30,41,59,.95), rgba(15,23,42,.92));
+            border: 1px solid rgba(148, 163, 184, .16);
+            transition: transform .25s ease, border-color .25s ease;
+        }
+
+        .account-stat:hover {
+            transform: translateY(-3px);
+            border-color: rgba(59,130,246,.45);
+        }
+
+        .input-modern {
+            width: 100%;
+            background: rgba(2,6,23,.88);
+            border: 1px solid rgba(55,65,81,.9);
+            border-radius: 14px;
+            padding: 11px 12px;
+            color: #fff;
+            font-size: 13px;
+            outline: none;
+        }
+
+        .input-modern:focus {
+            border-color: rgba(59,130,246,.9);
+            box-shadow: 0 0 0 2px rgba(59,130,246,.22);
+        }
+
+        .settings-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 10px 12px;
+            border-bottom: 1px solid rgba(31,41,55,.9);
+            font-size: 12px;
+            color: #d1d5db;
+        }
+
+        .settings-row:last-child { border-bottom: 0; }
+
+        #qr-pix-box img {
+            width: 210px !important;
+            height: 210px !important;
+            max-width: 80vw !important;
+            object-fit: contain !important;
+            border-radius: 18px;
+            background: white;
+            padding: 10px;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-gray-100 min-h-screen relative pt-[40px] flex flex-col justify-between">
+
+    <div class="bg-black text-[10px] md:text-xs text-gray-300 py-2 px-4 fixed top-0 left-0 w-full z-[60] border-b border-gray-800 flex justify-between items-center h-[40px]">
+        <div class="flex items-center gap-1.5 font-medium truncate max-w-[70%]">
+            <span>🛡️ Compra Segura | 🚚 Envio para Todo Brasil | 💬 Suporte Seg-Sex 08h às 18h | 🔒 SSL Protegido</span>
+        </div>
+        <a href="https://rastreioguitech.netlify.app//" target="_blank" rel="noopener noreferrer" class="bg-gray-900 hover:bg-gray-800 border border-gray-700 text-white px-3 py-1 rounded-full flex items-center gap-1.5 transition-colors font-bold text-[10px] md:text-xs shrink-0">
+            <i class="fas fa-box text-blue-400"></i> Rastreamento 📦🚛
+        </a>
+    </div>
+
+    <div>
+        <header class="glass-card py-4 px-4 sticky top-[40px] z-50">
+            <div class="max-w-6xl mx-auto flex justify-between items-center">
+                <div class="flex flex-col leading-tight">
+                    <h1 class="text-xl md:text-2xl font-black tracking-wider text-blue-400 flex items-center gap-1 font-display">
+                        <i class="fas fa-bolt text-yellow-400"></i> Guilherme Eletrônica
+                    </h1>
+                    <span class="text-[10px] md:text-xs text-gray-400 font-semibold ml-8">Tecnologia, peças e acessórios</span>
+                </div>
+                <div class="hidden md:flex flex-col leading-tight ml-3 mr-auto">
+                    <span class="text-xs text-gray-300 font-bold">👋 Seja bem vindo ao site</span>
+                </div>
+                
+                <nav class="hidden md:flex items-center gap-4">
+                    <button onclick="abrirAreaCliente()" class="text-sm text-gray-300 hover:text-blue-400 transition-colors flex items-center gap-2 font-medium">
+                        <i class="fas fa-user-circle text-blue-500"></i> Minha Conta
+                    </button>
+                    <button onclick="abrirCarrinho()" class="relative text-sm bg-gray-800 border border-gray-700 px-4 py-1.5 rounded-full text-white font-bold flex items-center gap-2 shadow-inner hover:bg-gray-700">
+                        <i class="fas fa-cart-shopping text-green-400"></i> Carrinho
+                        <span id="cart-count" class="cart-badge">0</span>
+                    </button>
+                    <a href="https://instagram.com/guilhermeelc_som" target="_blank" rel="noopener noreferrer" class="text-sm text-gray-300 hover:text-blue-400 transition-colors flex items-center gap-2 font-medium">
+                        <i class="fas fa-headset text-blue-500"></i> Suporte
+                    </a>
+                    <div class="text-sm bg-gray-800 border border-gray-700 px-4 py-1.5 rounded-full text-green-400 font-bold flex items-center gap-2 shadow-inner">
+                        <span class="h-2 w-2 bg-green-500 rounded-full animate-pulse"></span> Atendimento Online
+                    </div>
+                </nav>
+
+                <button onclick="toggleMenu()" class="md:hidden text-gray-300 hover:text-white text-xl p-2 focus:outline-none cursor-pointer">
+                    <i id="burger-icon" class="fas fa-bars"></i>
+                </button>
+            </div>
+            <div class="md:hidden grid grid-cols-2 gap-2 mt-4">
+                <button onclick="abrirAreaCliente()" class="bg-gray-900 border border-gray-800 rounded-2xl py-3 text-sm font-black text-white flex items-center justify-center gap-2 shadow-lg">
+                    <i class="fas fa-user-circle text-blue-400"></i> Conta
+                </button>
+                <button onclick="abrirCarrinho()" class="relative bg-gray-900 border border-gray-800 rounded-2xl py-3 text-sm font-black text-white flex items-center justify-center gap-2 shadow-lg">
+                    <i class="fas fa-cart-shopping text-green-400"></i> Carrinho
+                    <span id="cart-count-mobile" class="bg-red-600 text-white text-[10px] rounded-full px-2 py-0.5">0</span>
+                </button>
+            </div>
+
+            <div id="mobile-menu" class="hidden md:hidden bg-gray-900 border-t border-gray-800 mt-4 py-4 px-4 space-y-3">
+                <a href="https://instagram.com/guilhermeelc_som" target="_blank" rel="noopener noreferrer" class="block text-sm text-gray-300 hover:text-blue-400 py-2 border-b border-gray-800 flex items-center gap-2 font-medium">
+                    <i class="fas fa-headset text-blue-500"></i> Chat / Suporte
+                </a>
+                <div class="text-xs text-green-400 font-bold flex items-center gap-2 pt-1">
+                    <span class="h-2 w-2 bg-green-500 rounded-full animate-pulse"></span> Atendimento Online
+                </div>
+            </div>
+        </header>
+
+        <div class="max-w-6xl mx-auto px-3 mt-3">
+            <div class="glass-card rounded-xl p-1.5 flex items-center justify-center gap-1.5 text-center max-w-md mx-auto">
+                <div class="bg-blue-500/10 p-1 rounded-lg border border-blue-500/20 text-blue-400">
+                    <i class="fas fa-shipping-fast text-xs md:text-sm"></i>
+                </div>
+                <div>
+                    <span class="text-xs md:text-sm font-black text-white block leading-none">+250 pedidos enviados</span>
+                    <span class="text-[7px] md:text-[10px] text-gray-500">Entrega rápida com suporte total</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="max-w-6xl mx-auto px-3 mt-3">
+            <div class="glass-card rounded-xl p-3 text-center">
+                <p class="text-xs md:text-sm text-gray-300 font-medium">
+                    ⚠️ Problema ao finalizar pelo TikTok? 
+                    <a href="https://instagram.com/guilhermeelc_som" target="_blank" rel="noopener noreferrer" class="text-blue-400 font-bold underline ml-1 hover:text-blue-300 transition-colors">Fale conosco e concluímos seu pedido com segurança.</a>
+                </p>
+                <p class="text-[10px] md:text-xs text-green-400 font-bold mt-2 flex items-center justify-center gap-1">
+                    <i class="fas fa-clock"></i> Respondemos em até 1 hora
+                </p>
+            </div>
+        </div>
+
+
+        <div class="max-w-6xl mx-auto px-3 mt-3">
+            <button onclick="abrirModalSolicitacao()" class="w-full glass-card rounded-xl p-3 text-center text-xs md:text-sm font-bold text-white hover:border-blue-500/60 transition-all shadow-xl">
+                <i class="fas fa-search text-blue-400"></i>
+                Não encontrou o que queria ou precisa de suporte com a compra?
+                <span class="text-blue-400 underline ml-1">Clique aqui</span>
+            </button>
+        </div>
+
+        <div class="max-w-6xl mx-auto px-3 mt-3">
+            <div class="relative overflow-hidden rounded-2xl border-2 border-blue-400 bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-600 p-4 shadow-2xl shadow-blue-900/70">
+                <div class="absolute inset-0 bg-white/10 animate-pulse"></div>
+                <div class="relative flex items-center justify-center gap-3 text-center">
+                    <div class="text-2xl md:text-3xl animate-bounce">⬇️</div>
+                    <div>
+                        <p class="font-black text-white text-base md:text-xl uppercase tracking-wider">
+                            ARRASTE PARA BAIXO
+                        </p>
+                        <p class="text-blue-100 text-xs md:text-sm font-bold">
+                            para ver nossos produtos disponíveis
+                        </p>
+                    </div>
+                    <div class="text-2xl md:text-3xl animate-bounce">⬇️</div>
+                </div>
+            </div>
+        </div>
+
+
+        <main class="w-full max-w-6xl mx-auto px-2 md:px-4 py-4">
+            <div class="flex justify-between items-center mb-4 px-2">
+                <h3 class="text-base font-bold flex items-center gap-2 text-white">
+                    <i class="fas fa-boxes-stacked text-blue-500"></i> Nossos Produtos Disponíveis
+                </h3>
+                <span class="text-[10px] md:text-xs bg-gray-900 border border-gray-800 text-gray-300 px-2.5 py-1 rounded-full flex items-center gap-1 font-medium shadow-sm">
+                    <i class="fas fa-map-marker-alt text-red-500 animate-bounce"></i> Entrega com rastreamento
+                </span>
+            </div>
+
+            <div class="mb-4 px-2">
+                <div class="relative">
+                    <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-blue-400 text-sm"></i>
+                    <input id="pesquisa-produtos" type="text" oninput="filtrarProdutos()" placeholder="Pesquisar produtos..." class="w-full bg-gray-900 border border-gray-800 rounded-2xl py-3 pl-10 pr-4 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-500 shadow-lg">
+                </div>
+            </div>
+
+            <div id="vitrine-produtos" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-5">
+                <div class="col-span-full text-center py-12 text-gray-500">
+                    <i class="fas fa-circle-notch animate-spin text-2xl text-blue-500 mb-2"></i><br>Carregando vitrine...
+                </div>
+            </div>
+        </main>
+    </div>
+
+
+    <div id="modal-solicitacao" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-gray-900 border border-gray-800 rounded-2xl max-w-md w-full p-6 shadow-2xl relative modal-card-modern">
+            <button onclick="fecharModalSolicitacao()" class="absolute top-4 right-4 text-gray-500 hover:text-white text-xl cursor-pointer">
+                <i class="fas fa-times"></i>
+            </button>
+
+            <h3 class="text-lg font-black text-white mb-1">
+                <i class="fas fa-comments text-blue-500 mr-2"></i> Solicitar Atendimento
+            </h3>
+            <p class="text-xs text-gray-400 mb-4">
+                WhatsApp e Instagram são obrigatórios para nossa equipe retornar.
+            </p>
+
+            <form onsubmit="enviarSolicitacao(event)" class="space-y-3">
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Tipo de solicitação</label>
+                    <select id="sol-tipo" required class="w-full bg-gray-950 border border-gray-800 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-white">
+                        <option value="Preciso de suporte com a compra">Preciso de suporte com a compra</option>
+                        <option value="Quero um produto">Quero um produto</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">O que você precisa?</label>
+                    <textarea id="sol-mensagem" rows="3" required placeholder="Ex: Quero uma TS400 / Preciso de ajuda para finalizar..." class="w-full bg-gray-950 border border-gray-800 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-white resize-none"></textarea>
+                </div>
+
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Nome para contato</label>
+                    <input type="text" id="sol-nome" placeholder="Seu nome" class="w-full bg-gray-950 border border-gray-800 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-white">
+                </div>
+
+                <div>
+                    <label class="block text-[10px] font-bold text-orange-400 uppercase mb-1">WhatsApp obrigatório</label>
+                    <input type="tel" id="sol-telefone" required placeholder="(00) 00000-0000" class="w-full bg-gray-950 border border-gray-800 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 text-white">
+                    <p class="text-[9px] text-gray-500 mt-1">Digite DDD + número completo. Ex: (89) 99999-9999</p>
+                </div>
+
+                <div>
+                    <label class="block text-[10px] font-bold text-pink-400 uppercase mb-1">Instagram obrigatório</label>
+                    <input type="text" id="sol-instagram" required placeholder="@seuinstagram" class="w-full bg-gray-950 border border-gray-800 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500 text-white">
+                </div>
+
+                <button type="submit" id="btn-solicitacao" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-3 px-4 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-blue-950">
+                    <i class="fas fa-paper-plane"></i> Enviar solicitação
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div id="modal-compra" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-gray-900 border border-gray-800 rounded-2xl max-w-md w-full p-6 shadow-2xl relative modal-card-modern">
+            <button onclick="fecharModal()" class="absolute top-4 right-4 text-gray-500 hover:text-white text-xl cursor-pointer">
+                <i class="fas fa-times"></i>
+            </button>
+
+            <div class="mb-5 pt-2">
+                <div class="flex items-center gap-2">
+                    <div id="step-dados" class="checkout-step bg-blue-600 text-white">1</div>
+                    <div class="checkout-line"></div>
+                    <div id="step-pagamento" class="checkout-step bg-gray-800 text-gray-400 border border-gray-700">2</div>
+                    <div class="checkout-line opacity-40"></div>
+                    <div id="step-confirmacao" class="checkout-step bg-gray-800 text-gray-400 border border-gray-700">3</div>
+                </div>
+                <div class="grid grid-cols-3 text-[9px] text-gray-400 font-bold mt-1 text-center">
+                    <span>Dados</span>
+                    <span>Pagamento</span>
+                    <span>Confirmação</span>
+                </div>
+            </div>
+
+            <div id="etapa-formulario">
+                <h3 class="text-lg font-bold text-white mb-1"><i class="fas fa-truck text-blue-500 mr-2"></i>Dados de Entrega</h3>
+                <p id="modal-produto-nome" class="text-sm text-gray-400 mb-2 font-semibold"></p>
+                
+                <div class="bg-blue-950/60 border border-blue-900/50 text-[11px] text-blue-400 p-2.5 rounded-xl mb-3 flex items-start gap-2 leading-relaxed">
+                    <i class="fas fa-info-circle mt-0.5 text-blue-500"></i>
+                    <span>Informamos que, após a confirmação do pagamento, nossa equipe entrará em contato para fornecer o código de rastreamento assim que o pedido for postado.</span>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2 mb-3 bg-gray-950 p-2 rounded-xl border border-gray-800 text-[10px] text-gray-400">
+                    <div class="flex items-center gap-1.5">
+                        <i class="fab fa-pix text-green-400 text-sm"></i>
+                        <span>Pagamento Seguro Pix</span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <i class="fas fa-lock text-yellow-500"></i>
+                        <span title="Dados protegidos por criptografia SSL">🔒 Certificado SSL ativo</span>
+                    </div>
+                </div>
+
+                <form onsubmit="confirmarEndereco(event)" class="space-y-3 max-h-[45vh] overflow-y-auto pr-1">
+                    <div>
+                        <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Nome completo ou social</label>
+                        <input type="text" id="pedido-nome" required placeholder="Nome completo ou nome social" class="w-full bg-gray-950 border border-gray-800 rounded-xl p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-white">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">WhatsApp</label>
+                        <input type="tel" id="pedido-whatsapp" required placeholder="(00) 00000-0000" class="w-full bg-gray-950 border border-gray-800 rounded-xl p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-white">
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">CEP</label>
+                            <input type="text" id="cep" required onblur="buscarCep()" placeholder="00000000" class="w-full bg-gray-950 border border-gray-800 rounded-xl p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-white">
+                            <span id="cep-loading" class="text-[10px] text-blue-400 hidden"><i class="fas fa-spinner animate-spin"></i> Buscando...</span>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Rua completa</label>
+                            <input type="text" id="rua" required placeholder="Rua, avenida ou localidade" class="w-full bg-gray-950 border border-gray-800 rounded-xl p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-white">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Cidade</label>
+                            <input type="text" id="cidade" required placeholder="Cidade" class="w-full bg-gray-950 border border-gray-800 rounded-xl p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-white">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Estado (UF)</label>
+                            <input type="text" id="uf" required placeholder="Ex: SP" class="w-full bg-gray-950 border border-gray-800 rounded-xl p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-white">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Número</label>
+                            <input type="text" id="pedido-numero" required placeholder="Ex: 150" class="w-full bg-gray-950 border border-gray-800 rounded-xl p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-white">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Complemento</label>
+                            <select id="pedido-complemento" class="w-full bg-gray-950 border border-gray-800 rounded-xl p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-white">
+                                <option value="Sem complemento">Sem complemento</option>
+                                <option value="Casa">Casa</option>
+                                <option value="Apartamento">Apartamento</option>
+                                <option value="Comércio">Comércio</option>
+                                <option value="Ponto de referência">Ponto de referência</option>
+                                <option value="Outro">Outro</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl transition-colors flex items-center justify-center gap-2 cursor-pointer text-sm shadow-lg shadow-blue-950">
+                        Avançar para o Pagamento <i class="fas fa-arrow-right"></i>
+                    </button>
+                </form>
+            </div>
+
+            <div id="etapa-sucesso" class="hidden text-center py-6">
+                <div class="w-16 h-16 bg-green-500/10 border border-green-500 text-green-400 rounded-full flex items-center justify-center text-3xl mx-auto mb-4">
+                    <i class="fas fa-check"></i>
+                </div>
+                <h3 class="text-xl font-black text-green-400 mb-2">Endereço cadastrado! Siga para o pagamento.</h3>
+                <p class="text-xs text-gray-400 mb-4 px-4">Tudo certo! Clique no botão abaixo para concluir o pagamento via Pix.</p>
+
+                <div id="box-criar-conta-pos-endereco" class="bg-blue-500/10 border border-blue-500/30 rounded-xl p-3 mb-3 text-center">
+                    <p class="text-[11px] text-blue-200 font-bold mb-2">Quer acompanhar seu pedido ou ganhar cupons/descontos?</p>
+                    <button onclick="abrirCadastroClienteRapido()" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-black px-4 py-2 rounded-xl"><i class="fas fa-user-plus"></i> Criar Conta</button>
+                </div>
+
+                <div id="resumo-compra-box" class="bg-gray-950 border border-gray-800 rounded-xl p-3 mb-3 text-left text-xs">
+                    <div class="flex justify-between text-gray-300"><span>Subtotal:</span><b id="resumo-subtotal">R$ 0,00</b></div>
+                    <div class="flex justify-between text-gray-300 mt-1"><span>Frete:</span><b id="resumo-frete">R$ 0,00</b></div>
+                    <div class="flex justify-between text-yellow-300 mt-1"><span>Desconto:</span><b id="resumo-desconto">R$ 0,00</b></div>
+                    <div class="flex justify-between text-green-400 mt-2 font-black border-t border-gray-800 pt-2"><span>Total Pix:</span><b id="resumo-total">R$ 0,00</b></div>
+                    <p id="resumo-frete-msg" class="text-[10px] text-blue-400 mt-2"></p>
+                </div>
+
+                <div class="bg-green-500/10 border border-green-500/30 rounded-xl p-3 mb-3 text-center">
+                    <p class="text-[11px] text-green-300 font-black">
+                        <i class="fas fa-shield-alt"></i> Garantia: se não receber seu pedido, reembolsamos seu pagamento.
+                    </p>
+                </div>
+
+                <button id="btn-gerar-pix" onclick="irParaPagamento()" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3.5 px-4 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer text-sm shadow-lg shadow-green-950">
+                    <i class="fas fa-qrcode"></i> Gerar Pix Copia e Cola
+                </button>
+
+                <div class="mt-4 bg-gray-950 border border-gray-800 rounded-2xl p-3 text-left">
+                    <h4 class="text-white font-black text-xs mb-2 text-center">
+                        <i class="fas fa-users text-blue-400"></i> Clientes Satisfeitos
+                    </h4>
+                    <div class="space-y-1.5 text-[10px] text-gray-300">
+                        <p><i class="fas fa-check-circle text-green-400"></i> Mais de 300 pedidos entregues em todo o Brasil.</p>
+                        <p><i class="fas fa-star text-yellow-400"></i> Nota 5/5 com base em avaliações de clientes.</p>
+                    </div>
+                </div>
+
+                <div id="area-pix" class="hidden fixed inset-0 z-[100] bg-black/90 backdrop-blur-md p-4 overflow-y-auto">
+                    <div class="min-h-full flex items-center justify-center">
+                        <div class="w-full max-w-md bg-gray-950 border border-green-500/40 rounded-3xl p-5 text-center shadow-2xl shadow-green-950/50 relative">
+                            <button onclick="fecharTelaPix()" class="absolute top-4 right-4 text-gray-500 hover:text-white text-xl">
+                                <i class="fas fa-times"></i>
+                            </button>
+
+                            <div class="w-14 h-14 rounded-full bg-green-500/10 border border-green-500/40 flex items-center justify-center mx-auto mb-3">
+                                <i class="fab fa-pix text-green-400 text-3xl"></i>
+                            </div>
+
+                            <h4 class="text-green-400 font-black text-2xl mb-1">Pague com Pix</h4>
+                            <p class="text-[11px] text-gray-400 mb-4">
+                                Escaneie o QR Code ou copie o código Pix abaixo.
+                            </p>
+
+                            <div id="qr-pix-box" class="flex justify-center mb-4"></div>
+
+                            <div class="bg-gray-900 border border-gray-800 rounded-2xl p-3 text-left">
+                                <div class="flex items-center justify-between mb-2">
+                                    <label class="text-[10px] font-black text-gray-400 uppercase">Pix Copia e Cola</label>
+                                    <span class="text-[9px] bg-green-500/10 text-green-300 border border-green-500/30 rounded-full px-2 py-1 font-black">Seguro</span>
+                                </div>
+
+                                <textarea id="pix-copia-cola" readonly rows="5" class="w-full bg-gray-950 border border-gray-800 rounded-xl p-3 text-[11px] text-green-300 resize-none leading-relaxed"></textarea>
+
+                                <button id="btn-copiar-pix" onclick="copiarPix()" class="w-full mt-3 bg-blue-600 hover:bg-blue-700 text-white font-black py-3.5 px-4 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer text-sm">
+                                    <i class="fas fa-copy"></i> Copiar Pix
+                                </button>
+                            </div>
+
+                            <p class="text-[10px] text-gray-500 mt-3">
+                                Após pagar, envie o comprovante no suporte se necessário.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+    <!-- Modal Avaliações do Produto -->
+    <div id="modal-avaliacoes-produto" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[75] flex items-center justify-center hidden p-4">
+        <div class="account-panel border border-gray-800 rounded-3xl max-w-md w-full p-5 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+            <button onclick="fecharAvaliacoesProduto()" class="absolute top-4 right-4 text-gray-500 hover:text-white text-xl">
+                <i class="fas fa-times"></i>
+            </button>
+
+            <div class="text-center mb-4">
+                <div class="w-14 h-14 rounded-full bg-yellow-500/10 border border-yellow-500/30 flex items-center justify-center mx-auto mb-2">
+                    <i class="fas fa-star text-yellow-400 text-2xl"></i>
+                </div>
+                <h3 class="text-xl font-black text-white">Avaliações</h3>
+                <p id="avaliacoes-produto-nome" class="text-xs text-gray-400 font-bold"></p>
+            </div>
+
+            <div id="avaliacoes-produto-lista" class="space-y-3">
+                <div class="text-center text-gray-400 text-sm py-6">Carregando avaliações...</div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Modal do Carrinho -->
+    <div id="modal-carrinho" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="account-panel border border-gray-800 rounded-3xl max-w-lg w-full p-5 shadow-2xl relative">
+            <button onclick="fecharCarrinho()" class="absolute top-4 right-4 text-gray-500 hover:text-white text-xl cursor-pointer"><i class="fas fa-times"></i></button>
+            <h3 class="text-xl font-black text-white mb-1"><i class="fas fa-cart-shopping text-green-400"></i> Meu Carrinho</h3>
+            <p class="text-xs text-gray-400 mb-4">Revise os produtos antes de finalizar o pedido.</p>
+            <div id="lista-carrinho" class="space-y-3 max-h-[42vh] overflow-y-auto pr-1"></div>
+            <div class="mt-4 account-box rounded-2xl p-4 text-sm">
+                <div class="flex justify-between text-gray-300"><span>Subtotal:</span><b id="cart-subtotal">R$ 0,00</b></div>
+                <div class="flex justify-between text-gray-300 mt-1"><span>Frete:</span><b id="cart-frete">R$ 0,00</b></div>
+                <div class="mt-3">
+                    <p class="text-[10px] text-gray-400 font-black uppercase mb-1">🎁 Cupons disponíveis</p>
+                    <div class="grid grid-cols-[1fr_auto] gap-2">
+                        <select id="cart-cupom-select" class="input-modern text-xs">
+                            <option value="">Carregando cupons...</option>
+                        </select>
+                        <button onclick="aplicarCupomSelecionadoCarrinho()" class="bg-yellow-600 hover:bg-yellow-700 text-white text-xs font-black px-3 rounded-xl">Aplicar</button>
+                    </div>
+                    <p id="cart-cupom-msg" class="text-[10px] text-yellow-300 mt-1"></p>
+                </div>
+                <div class="flex justify-between text-yellow-300 mt-2"><span>Desconto:</span><b id="cart-desconto">R$ 0,00</b></div>
+<div class="flex justify-between text-green-400 mt-2 text-base font-black border-t border-gray-800 pt-2"><span>Total:</span><b id="cart-total">R$ 0,00</b></div>
+                <p id="cart-frete-msg" class="text-[10px] text-blue-400 mt-2"></p>
+            </div>
+            <button onclick="finalizarCarrinho()" class="w-full mt-4 bg-green-600 hover:bg-green-700 text-white font-black py-3.5 px-4 rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-green-950"><i class="fas fa-check"></i> Finalizar Compra</button>
+        </div>
+    </div>
+
+    <!-- Modal da Conta do Cliente -->
+    <div id="modal-conta" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center hidden p-3">
+        <div class="account-panel border border-gray-800 rounded-3xl max-w-3xl w-full p-4 md:p-6 shadow-2xl relative max-h-[92vh] overflow-y-auto">
+            <button onclick="fecharAreaCliente()" class="absolute top-4 right-4 text-gray-500 hover:text-white text-xl cursor-pointer z-10"><i class="fas fa-times"></i></button>
+            <div id="conta-login-area">
+                <div class="text-center mb-5">
+                    <div class="w-14 h-14 rounded-full bg-blue-600/15 border border-blue-500/40 flex items-center justify-center mx-auto mb-2"><i class="fas fa-user-shield text-blue-400 text-2xl"></i></div>
+                    <h3 class="text-2xl font-black text-white font-display">Área do Cliente</h3>
+                    <p class="text-xs text-gray-400">Entre para acompanhar pedidos, cupons e descontos.</p>
+                </div>
+                <div class="grid grid-cols-2 gap-2 mb-4">
+                    <button onclick="mostrarLoginCliente()" class="bg-blue-600 hover:bg-blue-700 rounded-2xl py-3 text-xs font-black">Entrar</button>
+                    <button onclick="mostrarCadastroCliente()" class="bg-gray-800 hover:bg-gray-700 rounded-2xl py-3 text-xs font-black">Criar Conta</button>
+                </div>
+                <form id="form-login-cliente" onsubmit="loginCliente(event)" class="space-y-3 account-box rounded-2xl p-4">
+                    <h4 class="font-black text-white text-sm"><i class="fas fa-right-to-bracket text-blue-400"></i> Entrar na conta</h4>
+                    <input id="login-usuario-cliente" required placeholder="Nome de usuário" class="input-modern">
+                    <input id="login-senha-cliente" type="password" required placeholder="Senha" class="input-modern">
+                    <button class="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-3 rounded-2xl">Entrar</button>
+                    <button type="button" onclick="abrirRecuperacaoConta()" class="w-full text-[11px] text-blue-300 hover:text-blue-200 underline font-bold">Esqueceu sua senha ou usuário? Solicitar atendimento</button>
+                </form>
+                <form id="form-cadastro-cliente" onsubmit="criarContaCliente(event)" class="hidden account-box rounded-2xl p-4">
+                    <h4 class="font-black text-white text-sm mb-3 text-center"><i class="fas fa-id-card text-green-400"></i> Dados de Cadastro</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div class="md:col-span-2"><label class="block text-[10px] text-gray-400 font-bold uppercase mb-1">Nome completo</label><input id="cad-nome-completo" required placeholder="Digite seu nome completo" class="input-modern"></div>
+                        <div class="md:col-span-2"><label class="block text-[10px] text-gray-400 font-bold uppercase mb-1">E-mail</label><input id="cad-email" type="email" required placeholder="Digite seu e-mail" class="input-modern"></div>
+                        <div><label class="block text-[10px] text-gray-400 font-bold uppercase mb-1">Crie um usuário (@)</label><input id="cad-usuario" required placeholder="@dgtech" class="input-modern"></div>
+                        <div><label class="block text-[10px] text-gray-400 font-bold uppercase mb-1">WhatsApp</label><input id="cad-whatsapp" required placeholder="(00) 90000-0000" class="input-modern"></div>
+                        <div><label class="block text-[10px] text-gray-400 font-bold uppercase mb-1">Crie uma senha</label><input id="cad-senha" type="password" required placeholder="********" class="input-modern"></div>
+                        <div><label class="block text-[10px] text-gray-400 font-bold uppercase mb-1">Repetir senha</label><input id="cad-senha2" type="password" required placeholder="********" class="input-modern"></div>
+                        <div class="md:col-span-2"><label class="block text-[10px] text-gray-400 font-bold uppercase mb-1">Foto de perfil opcional</label><input id="cad-foto" type="url" placeholder="Cole o link da foto, se quiser" class="input-modern"></div>
+                    </div>
+                    <button class="w-full mt-4 bg-green-600 hover:bg-green-700 text-white font-black py-3 rounded-2xl shadow-lg shadow-green-950"><i class="fas fa-user-plus"></i> Finalizar Cadastro</button>
+                </form>
+            </div>
+            <div id="conta-logada-area" class="hidden">
+                <div class="account-box rounded-3xl p-4 mb-4"><div class="flex items-center gap-4"><img id="cliente-foto" src="" onerror="this.src='https://ui-avatars.com/api/?name=Cliente&background=2563eb&color=fff'" class="w-20 h-20 rounded-full border-2 border-blue-500 object-cover bg-gray-800"><div class="flex-1"><p class="text-[10px] text-blue-300 font-black uppercase">Meu perfil & conta</p><h3 id="cliente-nome" class="text-2xl font-black text-white leading-tight">Cliente</h3><p id="cliente-usuario" class="text-sm text-blue-300 font-bold">@usuario</p><p id="cliente-whatsapp" class="text-xs text-gray-400 mt-1"></p></div></div></div>
+                <h4 class="text-xs text-gray-400 uppercase font-black mb-2">Resumo de pedidos</h4>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4">
+                    <button onclick="carregarPedidosCliente('processando')" class="account-stat rounded-2xl p-3 text-left"><div class="text-yellow-400 text-lg"><i class="fas fa-box-open"></i></div><div id="qtd-processando" class="text-white font-black text-lg">0</div><div class="text-[10px] text-gray-400 font-bold">Processando</div></button>
+                    <button onclick="carregarPedidosCliente('enviado')" class="account-stat rounded-2xl p-3 text-left"><div class="text-blue-400 text-lg"><i class="fas fa-truck-fast"></i></div><div id="qtd-enviado" class="text-white font-black text-lg">0</div><div class="text-[10px] text-gray-400 font-bold">Enviados</div></button>
+                    <button onclick="carregarPedidosCliente('finalizado')" class="account-stat rounded-2xl p-3 text-left"><div class="text-green-400 text-lg"><i class="fas fa-circle-check"></i></div><div id="qtd-finalizado" class="text-white font-black text-lg">0</div><div class="text-[10px] text-gray-400 font-bold">Finalizados</div></button>
+                    <button onclick="carregarPedidosCliente('devolucao')" class="account-stat rounded-2xl p-3 text-left"><div class="text-red-400 text-lg"><i class="fas fa-rotate-left"></i></div><div id="qtd-devolucao" class="text-white font-black text-lg">0</div><div class="text-[10px] text-gray-400 font-bold">Devoluções</div></button>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div class="account-box rounded-2xl p-4"><h4 class="font-black text-white text-sm mb-3"><i class="fas fa-ticket text-yellow-400"></i> Meus Cupons</h4><div id="cliente-cupons" class="text-xs text-gray-400">Carregando...</div></div><div class="account-box rounded-2xl p-4"><h4 class="font-black text-white text-sm mb-3"><i class="fas fa-gear text-blue-400"></i> Configurações</h4><div class="rounded-xl overflow-hidden border border-gray-800"><button onclick="alterarFotoCliente()" class="settings-row w-full"><span><i class="fas fa-image text-blue-400"></i> Alterar foto</span><i class="fas fa-chevron-right text-gray-500"></i></button><button onclick="alterarUsuarioCliente()" class="settings-row w-full"><span><i class="fas fa-user text-green-400"></i> Alterar usuário</span><i class="fas fa-chevron-right text-gray-500"></i></button><button onclick="alterarSenhaCliente()" class="settings-row w-full"><span><i class="fas fa-lock text-yellow-400"></i> Alterar senha</span><i class="fas fa-chevron-right text-gray-500"></i></button><button onclick="alterarWhatsappCliente()" class="settings-row w-full"><span><i class="fab fa-whatsapp text-green-400"></i> Alterar WhatsApp</span><i class="fas fa-chevron-right text-gray-500"></i></button></div></div></div>
+                <div class="account-box rounded-2xl p-4 mt-4"><h4 class="font-black text-white text-sm mb-3"><i class="fas fa-box text-blue-400"></i> Meus Pedidos</h4><div id="cliente-pedidos" class="space-y-2 text-xs text-gray-300 max-h-[35vh] overflow-y-auto">Selecione uma categoria.</div></div>
+                <button onclick="sairCliente()" class="w-full mt-4 bg-red-600 hover:bg-red-700 text-white font-black py-3 rounded-2xl">Sair</button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Modal Editar Perfil sem prompt branco -->
+    <div id="modal-editar-perfil" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[80] flex items-center justify-center hidden p-4">
+        <div class="account-panel border border-gray-800 rounded-3xl max-w-md w-full p-5 shadow-2xl relative">
+            <button onclick="fecharModalEditarPerfil()" class="absolute top-4 right-4 text-gray-500 hover:text-white text-xl">
+                <i class="fas fa-times"></i>
+            </button>
+
+            <h3 id="editar-perfil-titulo" class="text-xl font-black text-white mb-1">
+                <i class="fas fa-user-pen text-blue-400"></i> Editar Perfil
+            </h3>
+            <p id="editar-perfil-descricao" class="text-xs text-gray-400 mb-4">
+                Atualize seus dados com segurança.
+            </p>
+
+            <form onsubmit="salvarEdicaoPerfil(event)" class="space-y-3">
+                <input type="hidden" id="editar-perfil-tipo">
+
+                <div id="editar-campo-unico">
+                    <label id="editar-label-1" class="block text-[10px] text-gray-400 font-bold uppercase mb-1">Novo dado</label>
+                    <input id="editar-valor-1" class="input-modern" placeholder="Digite aqui">
+                </div>
+
+                <div id="editar-campo-confirmar" class="hidden">
+                    <label id="editar-label-2" class="block text-[10px] text-gray-400 font-bold uppercase mb-1">Confirmar</label>
+                    <input id="editar-valor-2" class="input-modern" placeholder="Confirme aqui">
+                </div>
+
+                <div class="grid grid-cols-2 gap-2 pt-2">
+                    <button type="button" onclick="fecharModalEditarPerfil()" class="bg-gray-800 hover:bg-gray-700 text-white font-black py-3 rounded-2xl">
+                        Cancelar
+                    </button>
+                    <button class="bg-green-600 hover:bg-green-700 text-white font-black py-3 rounded-2xl">
+                        <i class="fas fa-save"></i> Salvar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+
+    <!-- Recuperação de Conta -->
+    <div id="modal-recuperacao" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[70] flex items-center justify-center hidden p-4">
+        <div class="account-panel border border-gray-800 rounded-3xl max-w-md w-full p-5 shadow-2xl relative">
+            <button onclick="fecharRecuperacaoConta()" class="absolute top-4 right-4 text-gray-500 hover:text-white text-xl"><i class="fas fa-times"></i></button>
+            <h3 class="text-xl font-black text-white mb-1"><i class="fas fa-headset text-blue-400"></i> Recuperar acesso</h3>
+            <p class="text-xs text-gray-400 mb-4">Informe seus dados e nossa equipe entrará em contato com segurança.</p>
+            <form onsubmit="solicitarRecuperacao(event)" class="space-y-3">
+                <input id="rec-nome" required placeholder="Nome" class="input-modern">
+                <input id="rec-email" type="email" required placeholder="E-mail" class="input-modern">
+                <input id="rec-whatsapp" required placeholder="WhatsApp" class="input-modern">
+                <select id="rec-motivo" class="input-modern"><option value="Esqueci minha senha">Esqueci minha senha</option><option value="Esqueci meu usuário">Esqueci meu usuário</option><option value="Esqueci senha e usuário">Esqueci senha e usuário</option></select>
+                <button class="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-3 rounded-2xl"><i class="fas fa-paper-plane"></i> Solicitar Atendimento</button>
+            </form>
+        </div>
+    </div>
+
+
+    <a href="https://instagram.com/guilhermeelc_som" target="_blank" rel="noopener noreferrer" class="fixed bottom-6 left-6 bg-blue-600 text-white hover:bg-blue-700 px-3 h-12 rounded-full flex items-center justify-center gap-1.5 shadow-2xl border border-blue-500 z-40 transition-transform hover:scale-110 active:scale-95 font-bold text-xs" title="Chat / Suporte">
+        <i class="fas fa-user-tie text-base"></i> <span>Suporte</span>
+    </a>
+
+    <a href="mailto:guilhermeelc@zohomail.com" class="fixed bottom-20 right-4 bg-red-600 text-white hover:bg-red-700 w-12 h-12 rounded-full flex items-center justify-center text-xl shadow-2xl border border-red-500 z-40 transition-transform hover:scale-110 active:scale-95" title="Fale Conosco por E-mail">
+        <i class="fas fa-envelope"></i>
+    </a>
+
+    <a href="https://tiktok.com/@g.eletronica1" target="_blank" rel="noopener noreferrer" class="fixed bottom-6 right-4 bg-black text-white hover:bg-gray-900 w-12 h-12 rounded-full flex items-center justify-center text-xl shadow-2xl border border-gray-800 z-40 transition-transform hover:scale-110 active:scale-95 animate-pulse" title="Siga nosso TikTok">
+        <i class="fab fa-tiktok"></i>
+    </a>
+
+    <footer class="bg-gray-900 border-t border-gray-800 py-6 px-4 mt-12 text-xs text-gray-400 text-center w-full">
+        <div class="max-w-6xl mx-auto space-y-4">
+            <div class="flex flex-col md:flex-row items-center justify-center gap-3">
+                <div class="bg-white text-gray-950 rounded-full px-4 py-2 shadow-lg border-2 border-blue-500 flex items-center gap-2 font-black text-xs md:text-sm">
+                    <span class="bg-blue-600 text-white px-2 py-1 rounded-full text-[10px]">JUMPFY</span>
+                    <span>Seguro</span>
+                    <i class="fas fa-shield-alt text-green-600"></i>
+                </div>
+                <div class="bg-gray-950 border border-gray-700 rounded-2xl px-4 py-2 text-[10px] md:text-xs text-gray-300 shadow-lg max-w-full">
+                    <span class="text-white font-bold">Transportadoras:</span>
+                    Correios • J&T Express • IMILE BRASIL • AJUN EXPRESS • Azul Cargo
+                </div>
+            </div>
+            <div class="flex flex-wrap justify-center gap-2 md:gap-4 font-medium text-[10px] md:text-xs">
+                <span>E-mail suporte: <a href="mailto:guilhermeelc@zohomail.com" class="text-blue-400 hover:underline">guilhermeelc@zohomail.com</a></span>
+                <span class="text-gray-600 hidden md:inline">|</span>
+                <a href="mailto:guilhermeelc@proton.me" class="hover:text-white text-blue-400 hover:underline transition-colors">Trocas e Devoluções</a>
+                <span class="text-gray-600">|</span>
+                <a href="https://politicasguitech.netlify.app//" target="_blank" rel="noopener noreferrer" class="hover:text-white text-blue-400 hover:underline transition-colors">Política de Privacidade</a>
+                <span class="text-gray-600 hidden md:inline">|</span>
+                <span class="bg-green-500/10 border border-green-500/30 rounded-full px-3 py-1 flex items-center gap-1 text-green-400 font-bold"><i class="fas fa-flag"></i> Loja Brasileira</span>
+            </div>
+            <div class="text-[9px] text-gray-500 flex items-center justify-center gap-1.5 pt-2">
+                <i class="fas fa-shield-alt text-green-500"></i> Dados protegidos por criptografia SSL de ponta a ponta.
+            </div>
+            <p class="text-[9px] text-gray-600">&copy; 2026 Guilherme Eletrônica. Todos os direitos reservados.</p>
+        </div>
+    </footer>
+
+    <script>
+        const SUPABASE_URL = "https://rwseiwzfZQVBNAWTESMX.supabase.co"; 
+        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3c2Vpd3pmenF2Ym5hd3Rlc214Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MzIzNjcsImV4cCI6MjA5NjAwODM2N30.xMZHzq-V-2OHnyMFQAHn2j0HquUqxbTJheqINHBrRJA"; 
+        const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        let urlCheckoutAtual = "#";
+        let produtoAtualNome = "";
+        let produtoAtualPreco = 0;
+        let enderecoPedidoAtual = null;
+        let produtosCache = [];
+        let carrinho = JSON.parse(localStorage.getItem('carrinho_guitech') || '[]');
+        let clienteLogado = JSON.parse(localStorage.getItem('cliente_guitech') || 'null');
+        let itensPedidoAtual = [];
+        let subtotalPedidoAtual = 0;
+        let descontoPedidoAtual = 0;
+        let cupomAplicadoAtual = null;
+        let fretePedidoAtual = 0;
+        let totalPedidoAtual = 0;
+
+        window.onload = function() {
+            renderizarVitrine();
+            atualizarContadorCarrinho();
+            atualizarInterfaceCliente();
+        };
+
+        function dinheiro(valor) { return 'R$ ' + Number(valor || 0).toFixed(2).replace('.', ','); }
+        function salvarCarrinhoLocal() { localStorage.setItem('carrinho_guitech', JSON.stringify(carrinho)); atualizarContadorCarrinho(); }
+        function atualizarContadorCarrinho() { const qtd = carrinho.reduce((acc, item) => acc + Number(item.quantidade || 1), 0); const el = document.getElementById('cart-count'); const mob = document.getElementById('cart-count-mobile'); if (el) el.textContent = qtd; if (mob) mob.textContent = qtd; }
+        function calcularFrete(subtotal) { if (Number(subtotal) >= 60) return { valor: 0, msg: '🎉 Compra acima de R$60 com frete grátis!' }; return { valor: 5.57, msg: 'Frete fixo de R$5,57 para compras abaixo de R$60.' }; }
+
+        function recalcularTotalComCupom() {
+            const frete = calcularFrete(subtotalPedidoAtual);
+            fretePedidoAtual = frete.valor;
+            descontoPedidoAtual = cupomAplicadoAtual ? subtotalPedidoAtual * (Number(cupomAplicadoAtual.desconto || 0) / 100) : 0;
+            descontoPedidoAtual = Math.min(descontoPedidoAtual, subtotalPedidoAtual);
+            totalPedidoAtual = Math.max(0, subtotalPedidoAtual - descontoPedidoAtual + fretePedidoAtual);
+            produtoAtualPreco = totalPedidoAtual;
+        }
+
         async function carregarCuponsNoCarrinho() {
             const select = document.getElementById('cart-cupom-select');
             const msg = document.getElementById('cart-cupom-msg');
@@ -1096,24 +2350,16 @@
             if (msg) msg.textContent = '';
 
             try {
-                const { data, error } = await db
-                    .from('cupons')
-                    .select('id,codigo,desconto,ativo')
-                    .eq('ativo', true)
-                    .order('id', { ascending: false });
-
+                const { data, error } = await db.from('cupons').select('id,codigo,desconto,ativo').eq('ativo', true);
                 if (error) throw error;
 
                 const cupons = data || [];
-
                 if (cupons.length === 0) {
                     select.innerHTML = '<option value="">Nenhum cupom disponível</option>';
                     return;
                 }
 
-                select.innerHTML = '<option value="">Selecionar cupom</option>' + cupons.map(c => {
-                    return `<option value="${c.codigo}">${c.codigo} - ${c.desconto}% OFF</option>`;
-                }).join('');
+                select.innerHTML = '<option value="">Selecionar cupom</option>' + cupons.map(c => `<option value="${c.codigo}">${c.codigo} - ${c.desconto}% OFF</option>`).join('');
 
                 if (cupomAplicadoAtual) {
                     select.value = cupomAplicadoAtual.codigo;
@@ -1128,22 +2374,15 @@
 
         async function aplicarCupomSelecionadoCarrinho() {
             const select = document.getElementById('cart-cupom-select');
-            const msg = document.getElementById('cart-cupom-msg');
-
             const codigo = select ? select.value : '';
+
             if (!codigo) {
                 alert('Selecione um cupom.');
                 return;
             }
 
             try {
-                const { data, error } = await db
-                    .from('cupons')
-                    .select('id,codigo,desconto,ativo')
-                    .eq('codigo', codigo)
-                    .eq('ativo', true)
-                    .maybeSingle();
-
+                const { data, error } = await db.from('cupons').select('id,codigo,desconto,ativo').eq('codigo', codigo).eq('ativo', true).maybeSingle();
                 if (error) throw error;
                 if (!data) {
                     alert('Cupom inválido ou inativo.');
@@ -1151,10 +2390,7 @@
                 }
 
                 cupomAplicadoAtual = data;
-
-                const subtotal = carrinho.reduce((acc, item) => acc + (Number(item.preco_final || 0) * Number(item.quantidade || 1)), 0);
-                subtotalPedidoAtual = subtotal;
-
+                subtotalPedidoAtual = carrinho.reduce((acc, item) => acc + (Number(item.preco_final || 0) * Number(item.quantidade || 1)), 0);
                 recalcularTotalComCupom();
                 renderizarCarrinho();
 
@@ -1163,12 +2399,248 @@
                     const msgNovo = document.getElementById('cart-cupom-msg');
                     if (msgNovo) msgNovo.textContent = `✅ Cupom ${data.codigo} aplicado (${data.desconto}% OFF)`;
                 }, 100);
-
-                if (typeof mostrarToast === 'function') mostrarToast(`Cupom ${data.codigo} aplicado!`);
             } catch (err) {
                 alert('Erro ao aplicar cupom: ' + (err.message || err));
                 console.error('Erro ao aplicar cupom:', err);
             }
+        }
+
+        function prepararPedido(itens) {
+            itensPedidoAtual = itens.map(item => ({
+                id: item.id,
+                nome: item.nome,
+                preco: Number(item.preco_final || item.preco || 0),
+                quantidade: Number(item.quantidade || 1),
+                estoque: Number(item.estoque || 0)
+            }));
+
+            subtotalPedidoAtual = itensPedidoAtual.reduce((acc, item) => acc + (item.preco * item.quantidade), 0);
+            recalcularTotalComCupom();
+
+            produtoAtualNome = itensPedidoAtual.length === 1 ? itensPedidoAtual[0].nome : `${itensPedidoAtual.length} produtos no carrinho`;
+            produtoAtualPreco = totalPedidoAtual;
+        }
+
+        function toggleMenu() {
+            const menu = document.getElementById('mobile-menu');
+            const icon = document.getElementById('burger-icon');
+            if (menu.classList.contains('hidden')) {
+                menu.classList.remove('hidden');
+                icon.className = 'fas fa-times';
+            } else {
+                menu.classList.add('hidden');
+                icon.className = 'fas fa-bars';
+            }
+        }
+
+        async function buscarCep() {
+            const cepInput = document.getElementById('cep');
+            const cep = cepInput.value.replace(/\D/g, '');
+            const loading = document.getElementById('cep-loading');
+
+            if (cep.length !== 8) return;
+
+            loading.classList.remove('hidden');
+
+            try {
+                const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+                const data = await response.json();
+
+                if (!data.erro) {
+                    document.getElementById('rua').value = data.logradouro;
+                    document.getElementById('cidade').value = data.localidade;
+                    document.getElementById('uf').value = data.uf;
+                } else {
+                    alert('CEP não encontrado. Preencha os campos manualmente.');
+                }
+            } catch (error) {
+                console.error('Erro ao buscar CEP:', error);
+            } finally {
+                loading.classList.add('hidden');
+            }
+        }
+
+        async function renderizarVitrine() {
+            const container = document.getElementById('vitrine-produtos');
+            try {
+                const { data, error } = await db.from('produtos').select('*');
+
+                if (error || !data || data.length === 0) {
+                    container.innerHTML = `<div class="col-span-full text-center py-12 text-gray-500">Nenhum produto em estoque.</div>`;
+                    return;
+                }
+
+                produtosCache = data;
+                mostrarProdutos(produtosCache);
+            } catch (err) {
+                container.innerHTML = `<div class="col-span-full text-center py-12 text-red-400">Erro ao carregar vitrine.</div>`;
+            }
+        }
+
+        function filtrarProdutos() {
+            const termo = document.getElementById('pesquisa-produtos').value.toLowerCase().trim();
+            const filtrados = produtosCache.filter(item => {
+                const nome = (item.nome || '').toLowerCase();
+                const descricao = (item.descricao || '').toLowerCase();
+                const categoria = (item.categoria || '').toLowerCase();
+                return nome.includes(termo) || descricao.includes(termo) || categoria.includes(termo);
+            });
+            mostrarProdutos(filtrados);
+        }
+
+        function mostrarProdutos(lista) {
+            const container = document.getElementById('vitrine-produtos');
+
+            if (!lista || lista.length === 0) {
+                container.innerHTML = `<div class="col-span-full text-center py-12 text-gray-500">Nenhum produto encontrado.</div>`;
+                return;
+            }
+
+            container.innerHTML = '';
+            lista.forEach(item => {
+                const temEstoque = item.estoque && item.estoque > 0;
+                const textoEstoque = temEstoque ? `<span class="text-[8px] text-orange-400 font-medium block"><i class="fas fa-fire text-orange-500"></i> ${item.estoque} un!</span>` : `<span class="text-[8px] text-red-500 font-bold block">Esgotado</span>`;
+                
+                let blocoPreco = '';
+                let precoExibicao = parseFloat(item.preco).toFixed(2);
+                
+                if (item.preco_promocional && parseFloat(item.preco_promocional) > 0) {
+                    precoExibicao = parseFloat(item.preco_promocional).toFixed(2);
+                    blocoPreco = `
+                        <div class="flex flex-col leading-tight">
+                            <span class="text-[8px] text-red-500 line-through font-mono">R$ ${parseFloat(item.preco).toFixed(0)}</span>
+                            <span class="text-xs md:text-sm font-mono font-black text-green-400">R$ ${precoExibicao}</span>
+                        </div>
+                    `;
+                } else {
+                    blocoPreco = `
+                        <div class="flex flex-col leading-tight">
+                            <span class="text-[8px] text-gray-500 font-medium">No PIX</span>
+                            <span class="text-xs md:text-sm font-mono font-black text-green-400">R$ ${precoExibicao}</span>
+                        </div>
+                    `;
+                }
+
+                container.innerHTML += `
+                    <div class="produto-card glass-card rounded-xl overflow-hidden shadow-xl hover:border-blue-500/60 transition-all duration-300 ease-in-out group flex flex-col justify-between ${!temEstoque ? 'opacity-60' : ''}">
+                        <div class="produto-img-wrap relative aspect-square w-full bg-slate-950 overflow-hidden flex items-center justify-center">
+                            <img src="${item.imagem_url}" alt="${item.nome}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 ease-in-out ">
+                            <span class="absolute top-1 left-1 bg-blue-950/80 text-blue-400 border border-blue-900 font-bold text-[7px] px-1 py-0.5 rounded uppercase tracking-wide scale-90 origin-top-left">${item.categoria}</span>
+                            ${item.preco_promocional ? '<span class="absolute top-1 right-1 bg-red-600 border border-red-500 text-white font-black text-[7px] px-1 py-0.5 rounded uppercase animate-pulse scale-90 origin-top-right">PROMO</span>' : ''}
+                        </div>
+                        <div class="p-2 md:p-3 flex-1 flex flex-col justify-between">
+                            <div class="mb-1">
+                                <h4 class="font-bold text-white text-[11px] md:text-sm group-hover:text-blue-400 transition-colors line-clamp-1 leading-tight">${item.nome}</h4>
+                                <div class="text-yellow-400 text-[9px] md:text-xs my-0.5 leading-none" title="Avaliação do produto">★★★★★</div>
+                                <p class="text-[9px] text-gray-400 line-clamp-1 h-3 my-0.5 leading-none">${item.descricao || 'Sem descrição.'}</p>
+                                ${textoEstoque}
+
+                                <div class="mt-1 grid grid-cols-1 gap-0.5 text-[7px] md:text-[10px] leading-tight">
+                                    <span class="text-green-400 font-bold flex items-center gap-1">
+                                        <i class="fas fa-shield-alt"></i> Compra Segura</span><span class="text-gray-400 flex items-center gap-1"><i class="fas fa-check-circle text-green-400"></i> Produto testado antes do envio
+                                    </span>
+                                    <span class="text-gray-400 flex items-center gap-1">
+                                        <i class="fas fa-truck text-blue-400"></i> Envio em até 24h de segunda a sexta
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="mt-1">
+                                <div class="mb-1.5">
+                                    ${blocoPreco}
+                                </div>
+                                <div class="grid grid-cols-1 gap-1">
+                                    <button ${!temEstoque ? 'disabled' : ''} onclick='adicionarAoCarrinho(${JSON.stringify(item).replace(/'/g, "&apos;")})' class="w-full ${temEstoque ? 'bg-gray-800 hover:bg-gray-700 border border-gray-700' : 'bg-gray-800 text-gray-500 cursor-not-allowed'} text-white font-black py-1.5 px-1.5 rounded-xl transition-all duration-300 ease-in-out cursor-pointer flex items-center justify-center gap-1 text-[10px]">
+                                        <i class="fas fa-cart-plus text-[8px]"></i> ${temEstoque ? 'Adicionar' : 'Esgotado'}
+                                    </button>
+                                    <button ${!temEstoque ? 'disabled' : ''} onclick='comprarAgoraProduto(${JSON.stringify(item).replace(/'/g, "&apos;")})' class="w-full ${temEstoque ? 'bg-blue-500 hover:bg-blue-400 btn-comprar-pulse shadow-lg shadow-blue-950/80' : 'bg-gray-800 text-gray-500 cursor-not-allowed'} text-white font-black py-1.5 px-1.5 rounded-xl transition-all duration-300 ease-in-out cursor-pointer flex items-center justify-center gap-1 text-[10px]">
+                                        <i class="fas fa-shopping-bag text-[8px]"></i> ${temEstoque ? 'Comprar Agora' : 'Off'}
+                                    </button>
+                                    <button onclick='abrirAvaliacoesProduto(${item.id}, ${JSON.stringify(item.nome)})' class="w-full bg-yellow-500/10 hover:bg-yellow-500/20 border border-yellow-500/30 text-yellow-300 font-black py-1.5 px-1.5 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1 text-[10px]">
+                                        <i class="fas fa-star text-[8px]"></i> Avaliações
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+
+
+        async function abrirAvaliacoesProduto(produtoId, produtoNome) {
+            const modal = document.getElementById('modal-avaliacoes-produto');
+            const titulo = document.getElementById('avaliacoes-produto-nome');
+            const lista = document.getElementById('avaliacoes-produto-lista');
+
+            if (!modal || !lista) return;
+
+            titulo.textContent = produtoNome || 'Produto';
+            lista.innerHTML = `<div class="text-center text-gray-400 text-sm py-6"><i class="fas fa-spinner animate-spin text-yellow-400"></i><br>Carregando avaliações...</div>`;
+            modal.classList.remove('hidden');
+
+            try {
+                const { data, error } = await db
+                    .from('avaliacoes')
+                    .select('*')
+                    .eq('produto_id', produtoId)
+                    .eq('ativo', true)
+                    .order('criado_em', { ascending: false });
+
+                if (error) throw error;
+
+                if (!data || data.length === 0) {
+                    lista.innerHTML = `
+                        <div class="bg-gray-950 border border-gray-800 rounded-2xl p-4 text-center">
+                            <i class="far fa-star text-yellow-500 text-2xl"></i>
+                            <p class="text-sm text-gray-400 mt-2">Esse produto ainda não possui avaliações.</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                const media = data.reduce((acc, a) => acc + Number(a.estrelas || 5), 0) / data.length;
+
+                lista.innerHTML = `
+                    <div class="bg-yellow-500/10 border border-yellow-500/30 rounded-2xl p-3 text-center mb-3">
+                        <div class="text-yellow-400 text-lg">${'⭐'.repeat(Math.round(media))}</div>
+                        <p class="text-xs text-yellow-200 font-black">${media.toFixed(1)} de 5 • ${data.length === 1 ? '1 avaliação' : data.length + ' avaliações'}</p>
+                    </div>
+                    ${data.map(a => {
+                        const foto = a.foto_perfil || `https://ui-avatars.com/api/?name=${encodeURIComponent(a.nome || 'Cliente')}&background=2563eb&color=fff`;
+                        return `
+                        <div class="bg-gray-950 border border-gray-800 rounded-2xl p-3">
+                            <div class="flex items-start gap-3 mb-2">
+                                <img src="${foto}" onerror="this.src='https://ui-avatars.com/api/?name=Cliente&background=2563eb&color=fff'" class="w-11 h-11 rounded-full object-cover border border-blue-500 bg-gray-800">
+                                <div class="flex-1">
+                                    <div class="flex justify-between items-start gap-2">
+                                        <div>
+                                            <h4 class="text-white font-black text-sm">${a.nome || 'Cliente'}</h4>
+                                            <div class="text-yellow-400 text-xs">${'⭐'.repeat(Number(a.estrelas || 5))}</div>
+                                        </div>
+                                        <span class="text-[9px] bg-green-500/10 border border-green-500/30 text-green-400 rounded-full px-2 py-1 font-black">Verificado</span>
+                                    </div>
+                                    <p class="text-xs text-gray-300 leading-relaxed mt-2">${a.comentario || ''}</p>
+                                    ${a.foto_produto ? `
+                                        <div class="mt-3">
+                                            <p class="text-[10px] text-gray-500 font-bold uppercase mb-1">Foto do produto recebido</p>
+                                            <img src="${a.foto_produto}" class="w-full max-h-52 object-cover rounded-xl border border-gray-800">
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        </div>
+                        `;
+                    }).join('')}
+                `;
+            } catch (err) {
+                lista.innerHTML = `<div class="text-red-400 text-sm text-center py-6">Erro ao carregar avaliações: ${err.message}</div>`;
+            }
+        }
+
+        function fecharAvaliacoesProduto() {
+            const modal = document.getElementById('modal-avaliacoes-produto');
+            if (modal) modal.classList.add('hidden');
         }
 
         function produtoParaItem(item) { const precoFinal = item.preco_promocional && Number(item.preco_promocional) > 0 ? Number(item.preco_promocional) : Number(item.preco || 0); return { id: item.id, nome: item.nome, preco: Number(item.preco || 0), preco_final: precoFinal, imagem_url: item.imagem_url, estoque: Number(item.estoque || 0), quantidade: 1 }; }
